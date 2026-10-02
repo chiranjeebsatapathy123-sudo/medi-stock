@@ -1,0 +1,6 @@
+@echo off
+echo Installing ML Service dependencies...
+pip install -r ml-service/requirements.txt
+echo Starting ML Service on port 8000...
+set PYTHONPATH=%cd%\ml-service
+python ml-service/app/main.py
