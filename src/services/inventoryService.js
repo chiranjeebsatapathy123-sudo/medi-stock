@@ -1,174 +1,72 @@
-import { db, saveDb, delay } from './mockDb';
+import client from '../api/client';
 
 export const inventoryService = {
   async getMedicines() {
-    await delay(300);
-    return db.medicines.map(med => {
-      const batches = db.batches.filter(b => b.medicineId === med.id);
-      const totalStock = batches.reduce((sum, b) => sum + b.currentQty, 0);
-      return { ...med, totalStock };
-    });
+    try {
+      const response = await client.get('/medicines');
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
   },
 
   async getBatches(medicineId = null) {
-    await delay(300);
-    let batches = db.batches;
-    if (medicineId) batches = batches.filter(b => b.medicineId === medicineId);
-    return batches.map(batch => {
-      const medicine = db.medicines.find(m => m.id === batch.medicineId);
-      return { ...batch, medicineName: medicine?.name || medicine?.genericName };
-    });
+    try {
+      const url = medicineId ? `/batches?medicineId=${medicineId}` : '/batches';
+      const response = await client.get(url);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
   },
 
   async getDashboardStats() {
-    await delay(200);
-    const medicines = db.medicines;
-    const batches = db.batches;
-    
-    let totalStockUnits = 0;
-    let inventoryValue = 0;
-    let lowStockItems = 0;
-    let criticalItems = 0;
-    let expiringItems = 0;
-    let expiredItems = 0;
-
-    const today = new Date();
-    
-    medicines.forEach(med => {
-      const medBatches = batches.filter(b => b.medicineId === med.id);
-      const stock = medBatches.reduce((sum, b) => sum + b.currentQty, 0);
-      
-      totalStockUnits += stock;
-      inventoryValue += medBatches.reduce((sum, b) => sum + (b.currentQty * b.purchasePrice), 0);
-      
-      if (stock === 0) criticalItems++;
-      else if (stock < med.safetyStock) criticalItems++;
-      else if (stock < med.reorderLevel) lowStockItems++;
-      
-      medBatches.forEach(b => {
-        const expiryDate = new Date(b.expiryDate);
-        const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
-        if (diffDays < 0) expiredItems++;
-        else if (diffDays <= 30) expiringItems++;
-      });
-    });
-
-    // Calculate Health Score dynamically (0-100)
-    let score = 100;
-    score -= (criticalItems * 5);
-    score -= (lowStockItems * 2);
-    score -= (expiredItems * 10);
-    score -= (expiringItems * 3);
-    if (score < 0) score = 0;
-
-    return {
-      totalMedicines: medicines.length,
-      totalStockUnits,
-      inventoryValue,
-      lowStockItems,
-      criticalItems,
-      expiringItems,
-      expiredItems,
-      inventoryHealth: score,
-      healthReasons: [
-        `${Math.max(0, 100 - ((criticalItems + lowStockItems)/medicines.length)*100).toFixed(0)}% essential-stock coverage`,
-        `98% inventory accuracy via cycle counts`,
-        expiringItems > 0 ? `⚠ ${expiringItems} batches near expiry` : `✓ No batches near expiry`,
-        criticalItems > 0 ? `⚠ ${criticalItems} medicines below safety stock` : `✓ All medicines above safety stock`
-      ]
-    };
-  },
-
-  // First Expiry, First Out Logic
-  async issueStock(medicineId, requestedQuantity, user, reason, locationId, reference) {
-    await delay(400);
-    
-    const medBatches = db.batches.filter(b => 
-      b.medicineId === medicineId && 
-      b.currentQty > 0 && 
-      b.status === "ACTIVE" &&
-      !b.quarantine &&
-      !b.recall
-    );
-    
-    const today = new Date();
-    const validBatches = medBatches.filter(b => new Date(b.expiryDate) >= today);
-    
-    // Sort by earliest expiry date (FEFO)
-    validBatches.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
-
-    let remainingToIssue = requestedQuantity;
-    const transactions = [];
-
-    for (const batch of validBatches) {
-      if (remainingToIssue <= 0) break;
-
-      const issueFromBatch = Math.min(batch.currentQty, remainingToIssue);
-      
-      // Update batch quantity
-      batch.currentQty -= issueFromBatch;
-      if (batch.currentQty === 0) {
-        batch.status = "DEPLETED";
-      }
-
-      // Record movement
-      const movement = {
-        id: `MOV-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-        medicineId,
-        batchId: batch.id,
-        quantity: -issueFromBatch,
-        type: "DISPENSED",
-        prevQty: batch.currentQty + issueFromBatch,
-        newQty: batch.currentQty,
-        user,
-        timestamp: new Date().toISOString(),
-        sourceId: batch.locationId,
-        destId: locationId || "DISPENSARY",
-        reason,
-        reference
+    try {
+      const response = await client.get('/dashboard/summary');
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      return {
+        totalStockUnits: 0,
+        inventoryValue: 0,
+        lowStockItems: 0,
+        criticalItems: 0,
+        expiringItems: 0,
+        expiredItems: 0,
+        recentMovements: []
       };
-      
-      db.movements.push(movement);
-      transactions.push({ batchNumber: batch.batchNumber, quantity: issueFromBatch, expiry: batch.expiryDate });
-      
-      remainingToIssue -= issueFromBatch;
     }
-
-    saveDb();
-
-    if (remainingToIssue > 0) {
-      throw new Error(`Insufficient valid stock. Short by ${remainingToIssue} units.`);
-    }
-
-    return { success: true, transactions };
   },
 
-  async saveMedicine(med) {
-    await delay(300);
-    if (med.id) {
-      const idx = db.medicines.findIndex(m => m.id === med.id);
-      if (idx > -1) db.medicines[idx] = { ...db.medicines[idx], ...med, updatedAt: new Date().toISOString() };
-    } else {
-      const newMed = {
-        ...med,
-        id: `MED-${Date.now()}`,
-        status: "ACTIVE",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      db.medicines.push(newMed);
+  async receiveStock(payload) {
+    try {
+      const response = await client.post('/inventory/receive', payload);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
     }
-    saveDb();
-    return { success: true };
   },
 
-  async deleteMedicine(id) {
-    await delay(300);
-    const idx = db.medicines.findIndex(m => m.id === id);
-    if (idx > -1) {
-      db.medicines.splice(idx, 1);
-      saveDb();
+  async issueStock(payload) {
+    try {
+      const response = await client.post('/inventory/issue', payload);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
     }
-    return { success: true };
+  },
+
+  async getInventoryMovements() {
+    try {
+      const response = await client.get('/inventory/movements');
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
   }
 };

@@ -1,21 +1,16 @@
-package com.medistock.backend.controller;
+import re
 
-import com.medistock.backend.entity.User;
+with open("backend/src/main/java/com/medistock/backend/controller/AuthController.java", "r") as f:
+    code = f.read()
+
+import_insert = """import com.medistock.backend.entity.User;
 import com.medistock.backend.repository.UserRepository;
-import com.medistock.backend.security.JwtUtils;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+"""
+if "com.medistock.backend.repository.UserRepository" not in code:
+    code = code.replace("import com.medistock.backend.security.JwtUtils;", import_insert + "import com.medistock.backend.security.JwtUtils;")
 
-import java.util.Map;
-
-@RestController
-@RequestMapping("/api/auth")
-public class AuthController {
-
-    private final AuthenticationManager authenticationManager;
+auth_class_decl = "public class AuthController {"
+auth_vars = """    private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
 
@@ -23,9 +18,10 @@ public class AuthController {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
         this.userRepository = userRepository;
-    }
+    }"""
+code = re.sub(r'    private final AuthenticationManager authenticationManager;.*?}', auth_vars, code, flags=re.DOTALL)
 
-    @PostMapping("/login")
+login_method = """    @PostMapping("/login")
     public Map<String, Object> login(@RequestBody Map<String, String> request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.get("email"), request.get("password"))
@@ -48,5 +44,10 @@ public class AuthController {
             "role", role,
             "organizationId", orgId
         ));
-    }
-}
+    }"""
+code = re.sub(r'    @PostMapping\("/login"\).*?}', login_method, code, flags=re.DOTALL)
+
+with open("backend/src/main/java/com/medistock/backend/controller/AuthController.java", "w") as f:
+    f.write(code)
+
+print("AuthController updated")

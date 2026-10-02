@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface MedicineRepository extends JpaRepository<Medicine, UUID> {
     
+    java.util.List<Medicine> findByOrganizationId(UUID organizationId);
+    Optional<Medicine> findByIdAndOrganizationId(UUID id, UUID organizationId);
 }

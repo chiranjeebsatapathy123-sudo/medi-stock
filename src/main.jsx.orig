@@ -8,9 +8,7 @@ import {
   Menu, Moon, PackageSearch, Plus, RefreshCw, Search, Settings, ShieldCheck,
   ShoppingCart, Sparkles, Sun, Truck, Users, X, Zap, Map, Send, Play, MapPin, Undo2, TrendingDown, Camera, ShieldAlert, ThermometerSnowflake, BrainCircuit, Server, Wrench, GitMerge, Radio
 } from "lucide-react";
-import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import "./styles.css";
-import { initializeDbFromApi } from "./services/mockDb";
 import { Dashboard } from "./pages/Dashboard";
 import { CommandCenter } from "./pages/CommandCenter";
 import { PharmacyOperations } from "./pages/PharmacyOperations";
@@ -119,16 +117,7 @@ function Login({ onLogin }) {
   );
 }
 
-function Sidebar({ collapsed, setCollapsed, onLogout }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const activePath = location.pathname;
-  const getActiveName = (path) => {
-    const routeMap = {"/today": "Today", "/command-center": "Command Center", "/dashboard": "Dashboard", "/": "Control Tower", "/pharmacy-ops": "Pharmacy Ops", "/inventory": "Inventory", "/batches": "Batches & Expiry", "/purchases": "Purchases", "/suppliers": "Suppliers", "/logistics-network": "Logistics Network", "/logistics-ops": "Logistics Ops", "/facility-center": "Facility Center", "/digital-twin": "Digital Twin", "/vision-queue": "Vision Queue", "/maintenance": "Maintenance", "/system-health": "System Health", "/error-center": "Error Center", "/shelf-map": "Shelf Map", "/scenario-planning": "Scenario Planning", "/ai-operations": "AI Operations", "/financial-intel": "Financial Intel", "/predictive-risk": "Predictive Risk", "/analytics": "Analytics", "/ai-insights": "AI Insights", "/reports": "Reports", "/users-roles": "Users & Roles", "/movements": "Movements", "/settings": "Settings", "/quality-control": "Quality Control"};
-    return routeMap[path] || "Control Tower";
-  };
-  const active = getActiveName(activePath);
-
+function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
   const groups = [
     { title: "Workspace", items: [["Control Tower", Radio], ["Command Center", LayoutDashboard], ["Pharmacy Ops", HeartPulse], ["Logistics Network", Map], ["Logistics Ops", Truck], ["Inventory", Boxes], ["Shelf Map", MapPin], ["Batches & Expiry", CalendarClock], ["Purchases", ShoppingCart], ["Suppliers", Truck]] },
     { title: "Smart Facility", items: [["Facility Center", Activity], ["Digital Twin", Server], ["Vision Queue", Camera], ["Maintenance", Wrench]] },
@@ -139,7 +128,7 @@ function Sidebar({ collapsed, setCollapsed, onLogout }) {
   return <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
     <div className="side-top"><div className="brand-mark"><HeartPulse size={22}/></div><span className="brand-text">MediStock</span><button className="icon-btn side-toggle" onClick={()=>setCollapsed(!collapsed)}><Menu size={19}/></button></div>
     <div className="nav-scroll">
-      {groups.map(g=><div className="nav-group" key={g.title}><span className="nav-title">{g.title}</span>{g.items.map(([name,Icon])=><button className={`nav-item ${active===name?"active":""}`} key={name} onClick={()=>navigate({"Today":"/today","Command Center":"/command-center","Dashboard":"/dashboard","Control Tower":"/","Pharmacy Ops":"/pharmacy-ops","Inventory":"/inventory","Batches & Expiry":"/batches","Purchases":"/purchases","Suppliers":"/suppliers","Logistics Network":"/logistics-network","Logistics Ops":"/logistics-ops","Facility Center":"/facility-center","Digital Twin":"/digital-twin","Vision Queue":"/vision-queue","Maintenance":"/maintenance","System Health":"/system-health","Error Center":"/error-center","Shelf Map":"/shelf-map","Scenario Planning":"/scenario-planning","AI Operations":"/ai-operations","Financial Intel":"/financial-intel","Predictive Risk":"/predictive-risk","Analytics":"/analytics","AI Insights":"/ai-insights","Reports":"/reports","Users & Roles":"/users-roles","Movements":"/movements","Settings":"/settings","Quality Control":"/quality-control"}[name])}><Icon size={18}/><span>{name}</span>{name==="AI Insights"&&<i/>}</button>)}</div>)}
+      {groups.map(g=><div className="nav-group" key={g.title}><span className="nav-title">{g.title}</span>{g.items.map(([name,Icon])=><button className={`nav-item ${active===name?"active":""}`} key={name} onClick={()=>setActive(name)}><Icon size={18}/><span>{name}</span>{name==="AI Insights"&&<i/>}</button>)}</div>)}
     </div>
     <div className="side-bottom"><button className="nav-item"><CircleHelp size={18}/><span>Help center</span></button><button className="nav-item logout" onClick={onLogout}><LogOut size={18}/><span>Sign out</span></button></div>
   </aside>;
@@ -294,9 +283,7 @@ function SettingsView() {
   </div>;
 }
 
-function CommandPalette({ open, setOpen }) {
-  const navigate = useNavigate();
-
+function CommandPalette({ open, setOpen, setActive }) {
   const [query, setQuery] = useState("");
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -321,7 +308,7 @@ function CommandPalette({ open, setOpen }) {
        <div className="cmd-list">
           {filtered.length===0 && <div className="empty-state">No results found</div>}
           {filtered.map(l => (
-            <button key={l} className="cmd-item" onClick={()=>{navigate({"Today":"/today","Command Center":"/command-center","Dashboard":"/dashboard","Control Tower":"/","Pharmacy Ops":"/pharmacy-ops","Inventory":"/inventory","Batches & Expiry":"/batches","Purchases":"/purchases","Suppliers":"/suppliers","Logistics Network":"/logistics-network","Logistics Ops":"/logistics-ops","Facility Center":"/facility-center","Digital Twin":"/digital-twin","Vision Queue":"/vision-queue","Maintenance":"/maintenance","System Health":"/system-health","Error Center":"/error-center","Shelf Map":"/shelf-map","Scenario Planning":"/scenario-planning","AI Operations":"/ai-operations","Financial Intel":"/financial-intel","Predictive Risk":"/predictive-risk","Analytics":"/analytics","AI Insights":"/ai-insights","Reports":"/reports","Users & Roles":"/users-roles","Movements":"/movements","Settings":"/settings","Quality Control":"/quality-control"}[l]);setOpen(false)}}>
+            <button key={l} className="cmd-item" onClick={()=>{setActive(l);setOpen(false)}}>
               <ChevronRight size={14}/> Go to {l} <span className="kbd">Jump</span>
             </button>
           ))}
@@ -354,15 +341,7 @@ function Analytics() {
   </div>;
 }
 
-function Header({ theme, setTheme, onMenu, search, setSearch, setCmdOpen, setToast }) {
-  const location = useLocation();
-  const activePath = location.pathname;
-  const getActiveName = (path) => {
-    const routeMap = {"/today": "Today", "/command-center": "Command Center", "/dashboard": "Dashboard", "/": "Control Tower", "/pharmacy-ops": "Pharmacy Ops", "/inventory": "Inventory", "/batches": "Batches & Expiry", "/purchases": "Purchases", "/suppliers": "Suppliers", "/logistics-network": "Logistics Network", "/logistics-ops": "Logistics Ops", "/facility-center": "Facility Center", "/digital-twin": "Digital Twin", "/vision-queue": "Vision Queue", "/maintenance": "Maintenance", "/system-health": "System Health", "/error-center": "Error Center", "/shelf-map": "Shelf Map", "/scenario-planning": "Scenario Planning", "/ai-operations": "AI Operations", "/financial-intel": "Financial Intel", "/predictive-risk": "Predictive Risk", "/analytics": "Analytics", "/ai-insights": "AI Insights", "/reports": "Reports", "/users-roles": "Users & Roles", "/movements": "Movements", "/settings": "Settings", "/quality-control": "Quality Control"};
-    return routeMap[path] || "Control Tower";
-  };
-  const active = getActiveName(activePath);
-
+function Header({ active, theme, setTheme, onMenu, search, setSearch, setCmdOpen, setToast }) {
   return <header className="topbar">
     <div className="mobile-menu"><button className="icon-btn" onClick={onMenu}><Menu size={21}/></button></div>
     <div className="crumb"><span>Workspace</span><ChevronRight size={14}/><b>{active}</b></div>
@@ -379,14 +358,7 @@ function Header({ theme, setTheme, onMenu, search, setSearch, setCmdOpen, setToa
 
 function App() {
   const [logged, setLogged] = useState(() => localStorage.getItem("medistock_logged") === "true");
-  const [dbLoading, setDbLoading] = useState(logged);
-  
-  useEffect(() => {
-    if (logged) {
-      initializeDbFromApi().then(() => setDbLoading(false));
-    }
-  }, [logged]);
-  
+  const [active, setActive] = useState(() => localStorage.getItem("medistock_active") || "Control Tower");
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("medistock_theme") || "light");
   const [search, setSearch] = useState("");
@@ -395,7 +367,7 @@ function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => { localStorage.setItem("medistock_logged", logged); }, [logged]);
-  
+  useEffect(() => { localStorage.setItem("medistock_active", active); }, [active]);
   useEffect(() => { 
     localStorage.setItem("medistock_theme", theme);
     document.documentElement.dataset.theme = theme; 
@@ -410,64 +382,55 @@ function App() {
   }, []);
 
   if(!logged) return <Login onLogin={()=>setLogged(true)}/>;
-  if(dbLoading) return <div className="page" style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'var(--muted)'}}>Loading Enterprise Data...</div>;
   
-  const Fallback = () => (
+  const content = active==="Today" ? <Today setActive={setActive} setToast={setToast}/> :
+    active==="Command Center" ? <CommandCenter setActive={setActive} setToast={setToast}/> :
+    active==="Dashboard" ? <Dashboard setActive={setActive} setToast={setToast}/> :
+    active==="Control Tower" ? <ControlTower setToast={setToast}/> :
+    active==="Pharmacy Ops" ? <PharmacyOperations setToast={setToast}/> :
+    active==="Inventory" ? <Inventory search={search} setToast={setToast}/> :
+    active==="Batches & Expiry" ? <Batches setToast={setToast}/> :
+    active==="Purchases" ? <Purchases setToast={setToast}/> :
+    active==="Suppliers" ? <Suppliers setToast={setToast}/> :
+    active==="Logistics Network" ? <LogisticsCommandCenter setActive={setActive} setToast={setToast}/> :
+    active==="Logistics Ops" ? <LogisticsOperations setToast={setToast}/> :
+    active==="Facility Center" ? <SmartFacilityCenter setActive={setActive} setToast={setToast}/> :
+    active==="Digital Twin" ? <WarehouseDigitalTwin setToast={setToast}/> :
+    active==="Vision Queue" ? <VisionReviewQueue setToast={setToast}/> :
+    active==="Maintenance" ? <MaintenanceCenter setToast={setToast}/> :
+    active==="System Health" ? <SystemHealth setToast={setToast}/> :
+    active==="Error Center" ? <ErrorManagement setToast={setToast}/> :
+    active==="Shelf Map" ? <ShelfMap setToast={setToast}/> :
+    active==="Scenario Planning" ? <ScenarioPlanning setToast={setToast}/> :
+    active==="AI Operations" ? <AIOperationsCenter setToast={setToast}/> :
+    active==="Financial Intel" ? <FinancialIntelligence setToast={setToast}/> :
+    active==="Predictive Risk" ? <PredictiveRisk setToast={setToast}/> :
+    active==="Analytics" ? <Analytics setToast={setToast}/> :
+    active==="AI Insights" ? <AIInsights setToast={setToast}/> :
+    active==="Reports" ? <Reports setToast={setToast}/> :
+    active==="Users & Roles" ? <UsersRoles setToast={setToast}/> :
+    active==="Movements" ? <Movements setToast={setToast}/> :
+    active==="Settings" ? <Administration setToast={setToast}/> :
+    active==="Quality Control" ? <QualityControl setToast={setToast}/> :
     <div className="page fade-in" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', height: '100%', padding: '40px'}}>
       <div style={{background: 'var(--bg)', padding: '24px', borderRadius: '50%', marginBottom: '24px', color: 'var(--brand)'}}><Clock3 size={48} /></div>
       <h2 style={{fontSize: '24px', marginBottom: '12px'}}>Module Under Development</h2>
       <p style={{color: 'var(--muted)', maxWidth: '400px', lineHeight: 1.6}}>This enterprise feature is currently being finalized by the engineering team and will be available in the next release.</p>
-    </div>
-  );
-
-  const content = (
-    <Routes>
-      <Route path="/" element={<ControlTower setToast={setToast}/>} />
-      <Route path="/today" element={<Today setToast={setToast}/>} />
-      <Route path="/command-center" element={<CommandCenter setToast={setToast}/>} />
-      <Route path="/dashboard" element={<Dashboard setToast={setToast}/>} />
-      <Route path="/pharmacy-ops" element={<PharmacyOperations setToast={setToast}/>} />
-      <Route path="/inventory" element={<Inventory search={search} setToast={setToast}/>} />
-      <Route path="/batches" element={<Batches setToast={setToast}/>} />
-      <Route path="/purchases" element={<Purchases setToast={setToast}/>} />
-      <Route path="/suppliers" element={<Suppliers setToast={setToast}/>} />
-      <Route path="/logistics-network" element={<LogisticsCommandCenter setToast={setToast}/>} />
-      <Route path="/logistics-ops" element={<LogisticsOperations setToast={setToast}/>} />
-      <Route path="/facility-center" element={<SmartFacilityCenter setToast={setToast}/>} />
-      <Route path="/digital-twin" element={<WarehouseDigitalTwin setToast={setToast}/>} />
-      <Route path="/vision-queue" element={<VisionReviewQueue setToast={setToast}/>} />
-      <Route path="/maintenance" element={<MaintenanceCenter setToast={setToast}/>} />
-      <Route path="/system-health" element={<SystemHealth setToast={setToast}/>} />
-      <Route path="/error-center" element={<ErrorManagement setToast={setToast}/>} />
-      <Route path="/shelf-map" element={<ShelfMap setToast={setToast}/>} />
-      <Route path="/scenario-planning" element={<ScenarioPlanning setToast={setToast}/>} />
-      <Route path="/ai-operations" element={<AIOperationsCenter setToast={setToast}/>} />
-      <Route path="/financial-intel" element={<FinancialIntelligence setToast={setToast}/>} />
-      <Route path="/predictive-risk" element={<PredictiveRisk setToast={setToast}/>} />
-      <Route path="/analytics" element={<Analytics setToast={setToast}/>} />
-      <Route path="/ai-insights" element={<AIInsights setToast={setToast}/>} />
-      <Route path="/reports" element={typeof Reports !== 'undefined' ? <Reports setToast={setToast}/> : <Fallback />} />
-      <Route path="/users-roles" element={typeof UsersRoles !== 'undefined' ? <UsersRoles setToast={setToast}/> : <Fallback />} />
-      <Route path="/movements" element={<Movements setToast={setToast}/>} />
-      <Route path="/settings" element={<Administration setToast={setToast}/>} />
-      <Route path="/quality-control" element={<QualityControl setToast={setToast}/>} />
-      <Route path="*" element={<Fallback />} />
-    </Routes>
-  );
+    </div>;
 
   return <div className={`app-shell ${collapsed?"side-collapsed":""}`}>
-    <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} onLogout={()=>setLogged(false)}/>
+    <Sidebar active={active} setActive={setActive} collapsed={collapsed} setCollapsed={setCollapsed} onLogout={()=>setLogged(false)}/>
     <main className="main">
       {!isOnline && <div style={{background: '#f43f5e', color: 'white', padding: '8px 16px', fontSize: '13px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontWeight: 500}}><AlertTriangle size={15}/> You are currently offline. MediStock is running in read-only mode.</div>}
-      <Header theme={theme} setTheme={setTheme} onMenu={()=>setCollapsed(!collapsed)} search={search} setSearch={setSearch} setCmdOpen={setCmdOpen} setToast={setToast}/>
+      <Header active={active} theme={theme} setTheme={setTheme} onMenu={()=>setCollapsed(!collapsed)} search={search} setSearch={setSearch} setCmdOpen={setCmdOpen} setToast={setToast}/>
       {content}
     </main>
     {toast&&<div className="toast"><ShieldCheck size={17}/>{toast}</div>}
-    <CommandPalette open={cmdOpen} setOpen={setCmdOpen}/>
+    <CommandPalette open={cmdOpen} setOpen={setCmdOpen} setActive={setActive}/>
   </div>;
 }
 createRoot(document.getElementById("root")).render(
   <ErrorBoundary>
-    <BrowserRouter><App/></BrowserRouter>
+    <App/>
   </ErrorBoundary>
 );

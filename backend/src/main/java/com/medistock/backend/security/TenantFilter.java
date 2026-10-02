@@ -20,14 +20,11 @@ public class TenantFilter extends OncePerRequestFilter {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication != null && authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.User) {
-            // Extract custom details or map username back to user->org
-            // In a full impl, we extend UserDetails to hold organizationId.
-            // For now, we mock the secure resolution phase.
-            
-            // Example of how we prevent blind client trust:
-            // UUID orgId = ((CustomUserDetails) authentication.getPrincipal()).getOrganizationId();
-            // TenantContext.setCurrentTenant(orgId);
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            if (userDetails.getOrganizationId() != null) {
+                TenantContext.setCurrentTenant(userDetails.getOrganizationId());
+            }
         }
 
         try {
