@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Filter, CalendarClock, ShieldAlert, ArrowRight, PackageSearch } from "lucide-react";
 import { inventoryService } from "../services/inventoryService";
 import { db } from "../services/mockDb";
-import { EmptyState } from "../components/ui";
+import { EmptyState, Modal } from "../components/ui";
 
-export function Batches() {
+export function Batches({ setToast }) {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
+  const [actionModal, setActionModal] = useState(null);
 
   useEffect(() => {
     loadBatches();
@@ -108,11 +109,52 @@ export function Batches() {
             </span>
             <span style={{fontSize:12, display:"flex", alignItems:"center", gap:5}}>
               {b.days <= 90 && <ShieldAlert size={14} color="var(--amber)"/>}
-              {b.action}
+              {b.action !== "No action required" ? (
+                <button className="link-btn" style={{ fontWeight: 600, color: 'var(--text)', textAlign: 'left', cursor: 'pointer' }} onClick={() => setActionModal(b)}>
+                  {b.action}
+                </button>
+              ) : (
+                <span style={{ color: 'var(--muted)' }}>{b.action}</span>
+              )}
             </span>
           </div>
         ))}
       </div>
     </div>
+
+    {actionModal && (
+      <Modal title="Execute Batch Recommendation" close={() => setActionModal(null)}>
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ background: 'var(--bg)', borderRadius: '8px', padding: '16px', border: '1px solid var(--line)' }}>
+            <h4 style={{ margin: '0 0 4px', fontSize: '15px' }}>{actionModal.medicineName} (Batch {actionModal.batchNumber})</h4>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)' }}>Risk Level: <b style={{ color: actionModal.days <= 7 ? 'var(--rose)' : 'var(--amber)' }}>{actionModal.riskLevel}</b> • Expiring in {actionModal.days} days</p>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <b style={{ fontSize: '13px', color: 'var(--text)' }}>AI Recommended Action</b>
+            <div style={{ background: 'var(--brand-soft)', border: '1px solid var(--brand)', borderRadius: '8px', padding: '16px', color: 'var(--brand)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert size={16}/> {actionModal.action}
+            </div>
+          </div>
+
+          <button className="primary" style={{ marginTop: '8px', padding: '14px', width: '100%', display: 'flex', justifyContent: 'center' }} onClick={() => {
+            if (actionModal.action === 'Transfer to fast-moving location') {
+              const b = db.batches.find(x => x.id === actionModal.id);
+              if (b) b.locationId = 'LOC-ER';
+              setToast(`Successfully transferred Batch ${actionModal.batchNumber} to ER Annex to accelerate consumption.`);
+            } else if (actionModal.action === 'Mark for disposal') {
+              db.batches = db.batches.filter(x => x.id !== actionModal.id);
+              setToast(`Batch ${actionModal.batchNumber} has been logged for regulatory disposal.`);
+            } else {
+              setToast(`Recommendation executed for ${actionModal.batchNumber}.`);
+            }
+            loadBatches();
+            setActionModal(null);
+          }}>
+            Execute & Resolve Risk
+          </button>
+        </div>
+      </Modal>
+    )}
   </div>;
 }

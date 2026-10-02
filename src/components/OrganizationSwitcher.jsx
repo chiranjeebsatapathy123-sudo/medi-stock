@@ -4,9 +4,9 @@ import { ChevronDown, Building, MapPin } from 'lucide-react';
 export function OrganizationSwitcher() {
     const [open, setOpen] = useState(false);
     
-    // Mocked for Phase 5 implementation
     const [currentOrg] = useState({ name: "Hospital Central", id: "org-1" });
-    const [currentBranch, setCurrentBranch] = useState({ name: "Main Pharmacy", id: "br-1" });
+    const initialBranch = JSON.parse(localStorage.getItem('medistock_branch')) || { name: "Main Pharmacy", id: "br-1" };
+    const [currentBranch, setCurrentBranch] = useState(initialBranch);
     
     const branches = [
         { name: "Main Pharmacy", id: "br-1" },
@@ -36,7 +36,11 @@ export function OrganizationSwitcher() {
                     {branches.map(b => (
                         <button 
                             key={b.id}
-                            onClick={() => { setCurrentBranch(b); setOpen(false); }}
+                            onClick={() => { 
+                                setCurrentBranch(b); 
+                                localStorage.setItem('medistock_branch', JSON.stringify(b));
+                                setOpen(false); 
+                            }}
                             className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-800 ${currentBranch.id === b.id ? 'text-brand' : 'text-slate-300'}`}
                         >
                             <MapPin size={14} /> {b.name}

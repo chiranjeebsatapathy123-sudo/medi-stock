@@ -81,8 +81,11 @@ export function Purchases({ setToast }) {
                 <div style={{display:"flex", alignItems:"center", gap:5, fontSize:12, color:"var(--text)"}}>Estimated Cost: <b>₹{r.estimatedCost.toLocaleString()}</b></div>
              </div>
              <div className="po-actions" style={{display:"flex", gap:10}}>
-                <button className="secondary" onClick={() => setToast && setToast("Opening editor...")}>Edit</button>
-                <button className="primary" onClick={() => setToast && setToast("Purchase Order generated and queued for approval.")}>Create Purchase Order</button>
+                <button className="secondary" onClick={() => setToast("Opening editor...")}>Edit</button>
+                <button className="primary" onClick={() => {
+                  setToast(`Purchase Order generated for ${r.suggestedQuantity} ${r.medicine.unit} of ${r.medicine.genericName}.`);
+                  setRecommendations(recommendations.filter(rec => rec.id !== r.id));
+                }}>Create Purchase Order</button>
              </div>
           </div>
         </div>

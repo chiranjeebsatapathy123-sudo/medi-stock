@@ -1,14 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import {
   Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, Bell,
   Boxes, CalendarClock, ChevronRight, CircleHelp, ClipboardList, Clock3,
   Download, FileText, Filter, HeartPulse, LayoutDashboard, LogOut,
   Menu, Moon, PackageSearch, Plus, RefreshCw, Search, Settings, ShieldCheck,
-  ShoppingCart, Sparkles, Sun, Truck, Users, X, Zap, Map, Send, Play, MapPin, Undo2, TrendingDown, Camera, ShieldAlert, ThermometerSnowflake
+  ShoppingCart, Sparkles, Sun, Truck, Users, X, Zap, Map, Send, Play, MapPin, Undo2, TrendingDown, Camera, ShieldAlert, ThermometerSnowflake, BrainCircuit, Server, Wrench, GitMerge, Radio
 } from "lucide-react";
 import "./styles.css";
 import { Dashboard } from "./pages/Dashboard";
+import { CommandCenter } from "./pages/CommandCenter";
+import { PharmacyOperations } from "./pages/PharmacyOperations";
+import { FinancialIntelligence } from "./pages/FinancialIntelligence";
+import { PredictiveRisk } from "./pages/PredictiveRisk";
 import { Inventory } from "./pages/Inventory";
 import { Batches } from "./pages/Batches";
 import { Purchases } from "./pages/Purchases";
@@ -19,6 +24,17 @@ import { Today } from "./pages/Today";
 import { Administration } from "./pages/Administration";
 import { OrganizationSwitcher } from "./components/OrganizationSwitcher";
 import { QualityControl } from "./pages/QualityControl";
+import { AIOperationsCenter } from "./pages/AIOperationsCenter";
+import { LogisticsCommandCenter } from "./pages/LogisticsCommandCenter";
+import { LogisticsOperations } from "./pages/LogisticsOperations";
+import { SmartFacilityCenter } from "./pages/SmartFacilityCenter";
+import { VisionReviewQueue } from "./pages/VisionReviewQueue";
+import { MaintenanceCenter } from "./pages/MaintenanceCenter";
+import { WarehouseDigitalTwin } from "./pages/WarehouseDigitalTwin";
+import { SystemHealth } from "./pages/SystemHealth";
+import { ErrorManagement } from "./pages/ErrorManagement";
+import { ScenarioPlanning } from "./pages/ScenarioPlanning";
+import { ControlTower } from "./pages/ControlTower";
 
 const medicines = [
   { id: "MED-1042", name: "Amoxicillin 500mg", category: "Antibiotic", batch: "AMX-24F8", stock: 820, reorder: 300, expiry: "2027-04-18", supplier: "Cureline Pharma", status: "Healthy", price: 4.8 },
@@ -53,6 +69,8 @@ function Status({ value }) {
 function Login({ onLogin }) {
   const [email, setEmail] = useState("admin@medistock.com");
   const [password, setPassword] = useState("admin123");
+  const [name, setName] = useState("");
+  const [isRegister, setIsRegister] = useState(false);
   return (
     <div className="auth-shell">
       <div className="auth-art">
@@ -68,20 +86,30 @@ function Login({ onLogin }) {
       <div className="auth-panel">
         <div className="auth-form">
           <div className="mobile-brand"><div className="brand-mark"><HeartPulse size={23}/></div><b>MediStock</b></div>
-          <span className="eyebrow">WELCOME BACK</span>
-          <h2>Sign in to your workspace</h2>
-          <p className="muted">Sign in to your enterprise workspace.</p>
+          <span className="eyebrow">{isRegister ? "CREATE ACCOUNT" : "WELCOME BACK"}</span>
+          <h2>{isRegister ? "Register a new workspace" : "Sign in to your workspace"}</h2>
+          <p className="muted">{isRegister ? "Join to start managing your inventory." : "Sign in to your enterprise workspace."}</p>
+          
+          {isRegister && <label>Full Name<input value={name} onChange={e=>setName(e.target.value)} type="text" placeholder="John Doe" /></label>}
           <label>Work email<input value={email} onChange={e=>setEmail(e.target.value)} type="email"/></label>
           <label>Password
              <input value={password} onChange={e=>setPassword(e.target.value)} type="password"/>
-             <button className="link-btn" style={{position: 'absolute', right: 0, top: 0, marginTop: '-24px'}}>Forgot password?</button>
+             {!isRegister && <button className="link-btn" style={{position: 'absolute', right: 0, top: 0, marginTop: '-24px'}}>Forgot password?</button>}
           </label>
-          <div className="form-row">
-            <label className="checkbox"><input type="checkbox" defaultChecked/> Remember me for 30 days</label>
+          {!isRegister && (
+            <div className="form-row">
+              <label className="checkbox"><input type="checkbox" defaultChecked/> Remember me for 30 days</label>
+            </div>
+          )}
+          <button className="primary full" onClick={onLogin}>{isRegister ? "Register" : "Sign In"} <ChevronRight size={17}/></button>
+          
+          <div style={{textAlign: 'center', marginTop: '16px', fontSize: '14px'}}>
+            {isRegister ? "Already have an account? " : "Don't have an account? "}
+            <button className="link-btn" onClick={() => setIsRegister(!isRegister)}>{isRegister ? "Sign in" : "Register here"}</button>
           </div>
-          <button className="primary full" onClick={onLogin}>Sign In <ChevronRight size={17}/></button>
-          <div className="demo-note" style={{background: 'rgba(27, 180, 162, 0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(27, 180, 162, 0.2)'}}>
-            <Sparkles size={15}/><span>Demo credentials pre-filled. Click Sign In to explore.</span>
+
+          <div className="demo-note" style={{background: 'rgba(27, 180, 162, 0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(27, 180, 162, 0.2)', marginTop: '16px'}}>
+            <Sparkles size={15}/><span>Demo credentials pre-filled. Click {isRegister ? "Register" : "Sign In"} to explore.</span>
           </div>
         </div>
       </div>
@@ -91,8 +119,10 @@ function Login({ onLogin }) {
 
 function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout }) {
   const groups = [
-    { title: "Workspace", items: [["Dashboard", LayoutDashboard], ["Inventory", Boxes], ["Shelf Map", Map], ["Batches & Expiry", CalendarClock], ["Purchases", ShoppingCart], ["Suppliers", Truck]] },
-    { title: "Insights", items: [["Analytics", BarChart3], ["AI Insights", Sparkles], ["Quality Control", ThermometerSnowflake], ["Reports", FileText]] },
+    { title: "Workspace", items: [["Control Tower", Radio], ["Command Center", LayoutDashboard], ["Pharmacy Ops", HeartPulse], ["Logistics Network", Map], ["Logistics Ops", Truck], ["Inventory", Boxes], ["Shelf Map", MapPin], ["Batches & Expiry", CalendarClock], ["Purchases", ShoppingCart], ["Suppliers", Truck]] },
+    { title: "Smart Facility", items: [["Facility Center", Activity], ["Digital Twin", Server], ["Vision Queue", Camera], ["Maintenance", Wrench]] },
+    { title: "Insights", items: [["Scenario Planning", GitMerge], ["AI Operations", BrainCircuit], ["Financial Intel", BarChart3], ["Predictive Risk", ShieldAlert], ["AI Insights", Sparkles], ["Quality Control", ThermometerSnowflake], ["Reports", FileText]] },
+    { title: "System Ops", items: [["System Health", Activity], ["Error Center", AlertTriangle]] },
     { title: "Administration", items: [["Users & Roles", Users], ["Movements", ClipboardList], ["Settings", Settings]] }
   ];
   return <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
@@ -135,12 +165,21 @@ function GenericPage({ title, eyebrow, icon: Icon, description, action, children
 }
 
 function AIInsights() {
-  const [messages, setMessages] = useState([{role:"system", content:"Hello Admin. I'm your AI inventory assistant. Ask me anything about stock forecasting, expiring items, or generating purchase orders."}]);
+  const [messages, setMessages] = useState([{role:"system", content:"Hello Admin. I'm your AI inventory assistant. Ask me anything about stock forecasting, financial intelligence, or generating purchase orders."}]);
   const [input, setInput] = useState("");
   
   const handleSend = () => {
     if(!input.trim()) return;
-    setMessages([...messages, {role:"user", content:input}, {role:"system", content:"Analyzing current inventory metrics and seasonal trends... I have found 3 antibiotic batches expiring next month, and Paracetamol stock is below the optimal threshold for upcoming flu season. I have drafted a Purchase Order for your review.", actionWidget: true}]);
+    
+    let responseContent = "Analyzing current inventory metrics and seasonal trends... I have found 3 antibiotic batches expiring next month, and Paracetamol stock is below the optimal threshold for upcoming flu season. I have drafted a Purchase Order for your review.";
+    let actionWidget = true;
+
+    if (input.toLowerCase().includes("inventory value") || input.toLowerCase().includes("spend") || input.toLowerCase().includes("cost")) {
+      responseContent = "I analyzed your financial metrics. The 2.4% increase in inventory value is driven by the recent bulk purchase of Amoxicillin (₹45,200) and Insulin Glargine (₹12,450). MedCore Labs remains your supplier with the largest spend this quarter.";
+      actionWidget = false;
+    }
+
+    setMessages([...messages, {role:"user", content:input}, {role:"system", content:responseContent, actionWidget}]);
     setInput("");
   }
   return <div className="page ai-page">
@@ -318,16 +357,21 @@ function Header({ active, theme, setTheme, onMenu, search, setSearch, setCmdOpen
 }
 
 function App() {
-  const [logged, setLogged] = useState(false);
-  const [active, setActive] = useState("Dashboard");
+  const [logged, setLogged] = useState(() => localStorage.getItem("medistock_logged") === "true");
+  const [active, setActive] = useState(() => localStorage.getItem("medistock_active") || "Control Tower");
   const [collapsed, setCollapsed] = useState(false);
-  const [theme, setTheme] = useState("light");
+  const [theme, setTheme] = useState(() => localStorage.getItem("medistock_theme") || "light");
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
   const [cmdOpen, setCmdOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  useEffect(()=>{document.documentElement.dataset.theme=theme},[theme]);
+  useEffect(() => { localStorage.setItem("medistock_logged", logged); }, [logged]);
+  useEffect(() => { localStorage.setItem("medistock_active", active); }, [active]);
+  useEffect(() => { 
+    localStorage.setItem("medistock_theme", theme);
+    document.documentElement.dataset.theme = theme; 
+  }, [theme]);
   useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(""),3000);return()=>clearTimeout(t)}},[toast]);
   useEffect(()=>{
     const handleOnline = () => setIsOnline(true);
@@ -340,12 +384,27 @@ function App() {
   if(!logged) return <Login onLogin={()=>setLogged(true)}/>;
   
   const content = active==="Today" ? <Today setActive={setActive} setToast={setToast}/> :
+    active==="Command Center" ? <CommandCenter setActive={setActive} setToast={setToast}/> :
     active==="Dashboard" ? <Dashboard setActive={setActive} setToast={setToast}/> :
+    active==="Control Tower" ? <ControlTower setToast={setToast}/> :
+    active==="Pharmacy Ops" ? <PharmacyOperations setToast={setToast}/> :
     active==="Inventory" ? <Inventory search={search} setToast={setToast}/> :
     active==="Batches & Expiry" ? <Batches setToast={setToast}/> :
     active==="Purchases" ? <Purchases setToast={setToast}/> :
     active==="Suppliers" ? <Suppliers setToast={setToast}/> :
+    active==="Logistics Network" ? <LogisticsCommandCenter setActive={setActive} setToast={setToast}/> :
+    active==="Logistics Ops" ? <LogisticsOperations setToast={setToast}/> :
+    active==="Facility Center" ? <SmartFacilityCenter setActive={setActive} setToast={setToast}/> :
+    active==="Digital Twin" ? <WarehouseDigitalTwin setToast={setToast}/> :
+    active==="Vision Queue" ? <VisionReviewQueue setToast={setToast}/> :
+    active==="Maintenance" ? <MaintenanceCenter setToast={setToast}/> :
+    active==="System Health" ? <SystemHealth setToast={setToast}/> :
+    active==="Error Center" ? <ErrorManagement setToast={setToast}/> :
     active==="Shelf Map" ? <ShelfMap setToast={setToast}/> :
+    active==="Scenario Planning" ? <ScenarioPlanning setToast={setToast}/> :
+    active==="AI Operations" ? <AIOperationsCenter setToast={setToast}/> :
+    active==="Financial Intel" ? <FinancialIntelligence setToast={setToast}/> :
+    active==="Predictive Risk" ? <PredictiveRisk setToast={setToast}/> :
     active==="Analytics" ? <Analytics setToast={setToast}/> :
     active==="AI Insights" ? <AIInsights setToast={setToast}/> :
     active==="Reports" ? <Reports setToast={setToast}/> :
@@ -370,4 +429,8 @@ function App() {
     <CommandPalette open={cmdOpen} setOpen={setCmdOpen} setActive={setActive}/>
   </div>;
 }
-createRoot(document.getElementById("root")).render(<App/>);
+createRoot(document.getElementById("root")).render(
+  <ErrorBoundary>
+    <App/>
+  </ErrorBoundary>
+);

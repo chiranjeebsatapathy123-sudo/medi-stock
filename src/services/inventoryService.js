@@ -1,4 +1,4 @@
-import { db, delay } from './mockDb';
+import { db, saveDb, delay } from './mockDb';
 
 export const inventoryService = {
   async getMedicines() {
@@ -134,10 +134,41 @@ export const inventoryService = {
       remainingToIssue -= issueFromBatch;
     }
 
+    saveDb();
+
     if (remainingToIssue > 0) {
       throw new Error(`Insufficient valid stock. Short by ${remainingToIssue} units.`);
     }
 
     return { success: true, transactions };
+  },
+
+  async saveMedicine(med) {
+    await delay(300);
+    if (med.id) {
+      const idx = db.medicines.findIndex(m => m.id === med.id);
+      if (idx > -1) db.medicines[idx] = { ...db.medicines[idx], ...med, updatedAt: new Date().toISOString() };
+    } else {
+      const newMed = {
+        ...med,
+        id: `MED-${Date.now()}`,
+        status: "ACTIVE",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      db.medicines.push(newMed);
+    }
+    saveDb();
+    return { success: true };
+  },
+
+  async deleteMedicine(id) {
+    await delay(300);
+    const idx = db.medicines.findIndex(m => m.id === id);
+    if (idx > -1) {
+      db.medicines.splice(idx, 1);
+      saveDb();
+    }
+    return { success: true };
   }
 };
