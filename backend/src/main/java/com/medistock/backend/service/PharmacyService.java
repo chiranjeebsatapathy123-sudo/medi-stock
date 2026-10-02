@@ -99,7 +99,7 @@ public class PharmacyService {
             Batch batch = batchRepository.findById(reqItem.getBatchId())
                     .orElseThrow(() -> new IllegalArgumentException("Invalid batch ID"));
 
-            if (!batch.getMedicine().getOrganizationId().equals(organizationId)) {
+            if (!batch.getMedicine().getOrganization().getId().equals(organizationId)) {
                 throw new SecurityException("Batch does not belong to your organization");
             }
 
@@ -111,24 +111,28 @@ public class PharmacyService {
                 throw new IllegalStateException("Cannot dispense batch with status: " + batch.getStatus());
             }
 
-            if (batch.getCurrentQty() < reqItem.getQuantity()) {
+            if (batch.getCurrentQuantity() < reqItem.getQuantity()) {
                 throw new IllegalStateException("Insufficient quantity in batch: " + batch.getBatchNumber());
             }
 
             // Deduct inventory
-            batch.setCurrentQty(batch.getCurrentQty() - reqItem.getQuantity());
+            batch.setCurrentQuantity(batch.getCurrentQuantity() - reqItem.getQuantity());
             batchRepository.save(batch);
 
             // Record transaction
             InventoryTransaction tx = new InventoryTransaction();
-            tx.setOrganizationId(organizationId);
+            com.medistock.backend.entity.Organization org = new com.medistock.backend.entity.Organization();
+            org.setId(organizationId);
+            tx.setOrganization(org);
             tx.setMedicine(batch.getMedicine());
             tx.setBatch(batch);
             tx.setQuantity(-reqItem.getQuantity());
-            tx.setType("DISPENSE");
-            tx.setReference("ORDER-" + order.getOrderNumber());
-            tx.setNotes("Dispensed for order");
-            tx.setPerformedBy(userId);
+            tx.setMovementType("DISPENSE");
+            tx.setReferenceNumber("ORDER-" + order.getOrderNumber());
+            tx.setReason("Dispensed for order");
+            com.medistock.backend.entity.User userObj = new com.medistock.backend.entity.User();
+            userObj.setId(userId);
+            tx.setUser(userObj);
             transactionRepository.save(tx);
 
             // Create dispensing item
