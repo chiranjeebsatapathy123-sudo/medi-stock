@@ -11,10 +11,12 @@ public class ForecastService {
 
     private final MedicineRepository medicineRepository;
     private final InventoryTransactionRepository transactionRepository;
+    private final AiPredictionService aiPredictionService;
 
-    public ForecastService(MedicineRepository medicineRepository, InventoryTransactionRepository transactionRepository) {
+    public ForecastService(MedicineRepository medicineRepository, InventoryTransactionRepository transactionRepository, AiPredictionService aiPredictionService) {
         this.medicineRepository = medicineRepository;
         this.transactionRepository = transactionRepository;
+        this.aiPredictionService = aiPredictionService;
     }
 
     public Map<String, Object> getForecast(UUID medicineId, int horizonDays) {
@@ -44,7 +46,17 @@ public class ForecastService {
             List<Number> forecastList = (List<Number>) result.get("forecast");
             double totalPredictedDemand = forecastList.stream().mapToDouble(Number::doubleValue).sum();
             
-            // Track prediction in DB (Skipped here for brevity, assume AiPredictionService handles it)
+            // Track prediction in DB
+            aiPredictionService.recordPrediction(
+                medicine.getOrganization().getId(), // organizationId
+                medicine.getOrganization().getId(), // branchId (simulated)
+                "DemandForecastModel",              // modelName
+                "MEDICINE",                         // entityType
+                medicineId,                         // entityId
+                "DEMAND_FORECAST",                  // predictionType
+                request,                            // inputData
+                result                              // responseData
+            );
             
             return Map.of(
                 "horizonDays", horizonDays,

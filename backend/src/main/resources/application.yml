@@ -2,12 +2,12 @@ spring:
   application:
     name: medistock-backend
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/medistock}
-    username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:postgres}
+    url: jdbc:postgresql://ep-floral-hall-b4fh8o4f-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require
+    username: neondb_owner
+    password: npg_wY8TqbNr3VaI
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:

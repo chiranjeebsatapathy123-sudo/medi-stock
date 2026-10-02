@@ -38,4 +38,42 @@ public class AiInventoryService {
         response.put("confidence", 95.0);
         return response;
     }
+    
+    public Map<String, Object> predictStockoutRisk(Map<String, String> request) {
+        try {
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            org.springframework.http.ResponseEntity<Map> response = restTemplate.postForEntity(
+                "http://localhost:8000/predict/stockout-risk", 
+                request, 
+                Map.class
+            );
+            return response.getBody();
+        } catch (Exception e) {
+            // Fallback
+            return Map.of(
+                "risk_state", "UNKNOWN",
+                "risk_score", 0.0,
+                "evidence", List.of(Map.of("label", "System", "value", "AI Service Unavailable"))
+            );
+        }
+    }
+    
+    public List<Map<String, Object>> getModels() {
+        return List.of(
+            Map.of(
+                "model_name", "DemandForecastModel",
+                "version", "v1.0.0",
+                "status", "PRODUCTION"
+            )
+        );
+    }
+    
+    public Map<String, Object> getModelHealth() {
+        try {
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            return restTemplate.getForObject("http://localhost:8000/model-health", Map.class);
+        } catch (Exception e) {
+            return Map.of("status", "UNAVAILABLE");
+        }
+    }
 }
