@@ -23,9 +23,26 @@ export function MiniChart() {
 }
 
 export function Status({ value }) {
-  const cls = value.toLowerCase().includes("low")?"low-stock":value.toLowerCase().includes("expir")?"expiring":"healthy";
-  const Icon = cls==="healthy"?ShieldCheck:cls==="low-stock"?AlertTriangle:Clock3;
-  return <span className={`status ${cls}`}><Icon size={13}/>{value}</span>;
+  const lowerValue = value.toLowerCase();
+  
+  let cls = "healthy";
+  let Icon = ShieldCheck;
+  
+  if (lowerValue.includes("low")) {
+    cls = "low-stock";
+    Icon = AlertTriangle;
+  } else if (lowerValue.includes("expir")) {
+    cls = "expiring";
+    Icon = Clock3;
+  } else if (lowerValue.includes("out of stock") || lowerValue.includes("critical")) {
+    cls = "out-of-stock";
+    Icon = AlertTriangle; // Or use XCircle if you prefer, AlertTriangle is fine.
+  } else if (lowerValue.includes("archived") || lowerValue.includes("inactive")) {
+    cls = "archived";
+    Icon = Clock3;
+  }
+
+  return <span className={`status ${cls}`}><Icon size={13}/> {value}</span>;
 }
 
 export function Modal({ title, close, children }) {

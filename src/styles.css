@@ -763,6 +763,14 @@ h2 {
   background: #fff0f3;
   color: #b53c58;
 }
+.status.out-of-stock {
+  background: var(--rose-soft, #fef2f2);
+  color: var(--rose, #e11d48);
+}
+.status.archived {
+  background: var(--surface-2, #f1f5f9);
+  color: var(--muted, #64748b);
+}
 .empty-feature {
   min-height: 420px;
   display: flex;
