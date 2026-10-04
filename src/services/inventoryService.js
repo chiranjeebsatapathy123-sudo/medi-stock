@@ -11,10 +11,30 @@ export const inventoryService = {
     }
   },
 
+  async createMedicine(medicine) {
+    try {
+      const response = await client.post('/medicines', medicine);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  },
+
   async getBatches(medicineId = null) {
     try {
       const url = medicineId ? `/batches?medicineId=${medicineId}` : '/batches';
       const response = await client.get(url);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
+  },
+
+  async getLocations() {
+    try {
+      const response = await client.get('/locations');
       return response.data;
     } catch (e) {
       console.error(e);
@@ -35,7 +55,9 @@ export const inventoryService = {
         criticalItems: 0,
         expiringItems: 0,
         expiredItems: 0,
-        recentMovements: []
+        recentMovements: [],
+        inventoryHealth: 0,
+        healthReasons: []
       };
     }
   },
@@ -60,6 +82,26 @@ export const inventoryService = {
     }
   },
 
+  async transferStock(payload) {
+    try {
+      const response = await client.post('/inventory/transfer', payload);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  },
+
+  async disposeStock(payload) {
+    try {
+      const response = await client.post('/inventory/adjust', { ...payload, type: 'DISPOSAL' });
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  },
+
   async getInventoryMovements() {
     try {
       const response = await client.get('/inventory/movements');
@@ -70,3 +112,4 @@ export const inventoryService = {
     }
   }
 };
+

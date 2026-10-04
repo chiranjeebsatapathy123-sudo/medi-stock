@@ -1,41 +1,51 @@
-# MediStock Pro
+# MediStock
 
-A polished React + Vite frontend foundation for an intelligent medical inventory platform.
+MediStock is a comprehensive, production-grade Healthcare Supply Intelligence and Pharmacy Operations platform. It integrates inventory management, predictive procurement, financial intelligence, and supply chain automation into a single cohesive system.
 
-## Included
-- Responsive dashboard
-- Login screen
-- Inventory management UI
-- Medicine add modal
-- Stock/expiry statuses
-- AI inventory brief
-- Analytics-style dashboard
-- Purchases, suppliers, batches, reports, users, audit and settings module shells
-- Light/dark theme
-- Responsive mobile navigation
-- Search and inventory filters
+## 🚀 Features
+- **Intelligent Inventory & Cold-Chain Management**: Multi-location tracking, batch-level FEFO (First-Expire, First-Out) tracking, and temperature compliance.
+- **Predictive Decision Intelligence**: Real-time stockout risk prediction, automated replenishment, and anomaly detection.
+- **Advanced Pharmacy Operations**: Secure prescription dispensing, controlled medicine tracking, and patient verification.
+- **Intelligent Procurement**: Supplier performance tracking, automated PO generation, and streamlined Goods Receipt Notes (GRN).
+- **Financial Intelligence**: Dynamic inventory valuation (WAC, FIFO), cost analysis, and dead stock mitigation.
+- **Multi-Tenant Architecture**: Robust role-based access control (RBAC) and strict tenant isolation for enterprise-scale deployments.
 
-## Run
+## 🛠️ Technology Stack
+- **Frontend**: React, Vite, Tailwind CSS, Lucide Icons, Recharts
+- **Backend**: Java, Spring Boot, Spring Security, Hibernate (JPA)
+- **Database**: PostgreSQL (Neon Serverless)
+- **Migrations**: Flyway
+
+## 📦 Getting Started
+
+### Prerequisites
+- Node.js 18+
+- Java 17+
+- Maven
+- PostgreSQL
+
+### 1. Start the Frontend
+The frontend is a Vite + React application.
 
 ```bash
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
-Open the Vite URL shown in the terminal (normally http://localhost:5173).
+### 2. Start the Backend
+The backend is a Spring Boot application.
 
-The current build uses local demo data so the interface works immediately. The next integration layer should replace the demo state with REST calls to the Spring Boot API and PostgreSQL persistence.
+```bash
+cd backend
 
-## Suggested API modules
+# Run the Spring Boot app (Flyway will automatically migrate the database)
+./mvnw spring-boot:run
+```
 
-- /api/auth
-- /api/medicines
-- /api/batches
-- /api/inventory
-- /api/purchases
-- /api/suppliers
-- /api/reports
-- /api/analytics
-- /api/ai
-- /api/users
-- /api/audit
+The frontend will be available at `http://localhost:5173` and the backend at `http://localhost:8080`.
+
+## 🛡️ License
+Proprietary & Confidential.

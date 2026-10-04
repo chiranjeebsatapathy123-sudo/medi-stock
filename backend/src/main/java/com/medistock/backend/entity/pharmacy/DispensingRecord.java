@@ -39,6 +39,15 @@ public class DispensingRecord {
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "reversed_at")
+    private OffsetDateTime reversedAt;
+
+    @Column(name = "reversed_by")
+    private UUID reversedBy;
+
+    @Column(name = "reversal_reason")
+    private String reversalReason;
+
     @OneToMany(mappedBy = "dispensingRecord", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<DispensingItem> items = new ArrayList<>();

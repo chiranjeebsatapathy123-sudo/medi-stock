@@ -34,4 +34,18 @@ public class MedicineController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @PostMapping
+    public ResponseEntity<Medicine> createMedicine(@RequestBody Medicine medicine) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+        
+        com.medistock.backend.entity.Organization org = new com.medistock.backend.entity.Organization();
+        org.setId(tenantId);
+        medicine.setOrganization(org);
+        medicine.setActive(true);
+        
+        Medicine saved = medicineRepository.save(medicine);
+        return ResponseEntity.ok(saved);
+    }
 }

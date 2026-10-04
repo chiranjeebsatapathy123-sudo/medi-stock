@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, ThermometerSnowflake, Camera, HardDrive, Wrench, AlertTriangle, CheckCircle2, Zap, Server } from 'lucide-react';
-import { db } from '../services/mockDb';
+const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
 
 export function SmartFacilityCenter({ setActive, setToast }) {
   const [activeTab, setActiveTab] = useState('OVERVIEW');

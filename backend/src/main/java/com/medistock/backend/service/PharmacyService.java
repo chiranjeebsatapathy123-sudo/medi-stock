@@ -115,6 +115,17 @@ public class PharmacyService {
                 throw new IllegalStateException("Insufficient quantity in batch: " + batch.getBatchNumber());
             }
 
+            // FEFO Enforcement
+            List<Batch> eligibleBatches = batchRepository.findEligibleBatchesForFEFO(
+                    batch.getMedicine().getId(), organizationId, java.time.LocalDate.now().plusDays(30)); // example policy: 30 days remaining
+            
+            if (!eligibleBatches.isEmpty()) {
+                Batch nextFefoBatch = eligibleBatches.get(0);
+                if (!nextFefoBatch.getId().equals(batch.getId())) {
+                    throw new IllegalStateException("FEFO Violation: Batch " + nextFefoBatch.getBatchNumber() + " must be dispensed first before " + batch.getBatchNumber());
+                }
+            }
+
             // Deduct inventory
             batch.setCurrentQuantity(batch.getCurrentQuantity() - reqItem.getQuantity());
             batchRepository.save(batch);
@@ -162,6 +173,76 @@ public class PharmacyService {
         }
 
         orderRepository.save(order);
+        return dispensingRepository.save(record);
+    }
+
+    @Transactional
+    public MedicationOrder secondVerifyOrder(UUID id, UUID organizationId, UUID userId) {
+        MedicationOrder order = getOrder(id, organizationId);
+        
+        if (!"APPROVED".equals(order.getStatus())) {
+            throw new IllegalStateException("Order must be in APPROVED state for second verification");
+        }
+        
+        if (userId.equals(order.getReviewedBy())) {
+            throw new SecurityException("Second verifier must be different from the first reviewer");
+        }
+        
+        order.setSecondVerifierId(userId);
+        order.setSecondVerifiedAt(OffsetDateTime.now());
+        order.setStatus("READY_TO_DISPENSE");
+        
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public DispensingRecord reverseDispense(UUID id, UUID organizationId, UUID userId, String reason) {
+        DispensingRecord record = dispensingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Dispensing record not found"));
+                
+        if (!record.getOrganizationId().equals(organizationId)) {
+            throw new SecurityException("Unauthorized access to dispensing record");
+        }
+        
+        if ("REVERSED".equals(record.getStatus())) {
+            throw new IllegalStateException("Already reversed");
+        }
+        
+        // Reverse inventory and order status
+        for (DispensingItem dItem : record.getItems()) {
+            Batch batch = dItem.getBatch();
+            batch.setCurrentQuantity(batch.getCurrentQuantity() + dItem.getQuantity());
+            batchRepository.save(batch);
+            
+            InventoryTransaction tx = new InventoryTransaction();
+            com.medistock.backend.entity.Organization org = new com.medistock.backend.entity.Organization();
+            org.setId(organizationId);
+            tx.setOrganization(org);
+            tx.setMedicine(batch.getMedicine());
+            tx.setBatch(batch);
+            tx.setQuantity(dItem.getQuantity());
+            tx.setMovementType("REVERSAL");
+            tx.setReferenceNumber("REV-" + record.getDispensingNumber());
+            tx.setReason(reason != null ? reason : "Dispensing Reversal");
+            com.medistock.backend.entity.User userObj = new com.medistock.backend.entity.User();
+            userObj.setId(userId);
+            tx.setUser(userObj);
+            transactionRepository.save(tx);
+            
+            MedicationOrderItem oItem = dItem.getOrderItem();
+            oItem.setDispensedQuantity(oItem.getDispensedQuantity() - dItem.getQuantity());
+            oItem.setStatus(oItem.getDispensedQuantity() == 0 ? "PENDING" : "PARTIALLY_FULFILLED");
+        }
+        
+        record.setStatus("REVERSED");
+        record.setReversedAt(OffsetDateTime.now());
+        record.setReversedBy(userId);
+        record.setReversalReason(reason);
+        
+        MedicationOrder order = record.getOrder();
+        order.setStatus(order.getItems().stream().allMatch(i -> i.getDispensedQuantity() == 0) ? "APPROVED" : "PARTIALLY_FULFILLED");
+        orderRepository.save(order);
+        
         return dispensingRepository.save(record);
     }
 }

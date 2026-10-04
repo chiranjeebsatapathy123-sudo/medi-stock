@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Radio, AlertTriangle, CheckCircle, ShieldAlert, ThermometerSnowflake, Truck, Clock, Crosshair, ArrowRight, Activity, Search, RefreshCw, Zap } from 'lucide-react';
-import { db } from '../services/mockDb';
 
 export function ControlTower({ setToast }) {
   const [lastUpdate, setLastUpdate] = useState(new Date());
@@ -10,57 +9,24 @@ export function ControlTower({ setToast }) {
 
   // Simulate incoming real-time SSE stream
   useEffect(() => {
-    let pollingInterval = setInterval(() => {
-      setStatus('SYNCING');
-      
-      setTimeout(() => {
-        setLastUpdate(new Date());
-        setStatus('LIVE');
-        
-        // Generate simulated dynamic events
-        const newEvent = {
-           id: `EVT-${Math.floor(Math.random()*10000)}`,
-           type: Math.random() > 0.5 ? 'STOCKOUT_RISK' : 'TEMPERATURE_BREACH',
-           entity: 'Warehouse A',
-           timestamp: new Date().toISOString(),
-           severity: Math.random() > 0.7 ? 'CRITICAL' : 'HIGH'
-        };
-        
-        setEvents(prev => [newEvent, ...prev].slice(0, 10)); // Keep last 10
-      }, 500);
-      
-    }, 15000); // 15 second poll
-
-    return () => clearInterval(pollingInterval);
+    // TODO: Connect to backend SSE endpoint
+    setStatus('LIVE');
+    setLastUpdate(new Date());
   }, []);
 
   // Initialize risks based on actual DB
   useEffect(() => {
-     let detectedRisks = [];
-     db.medicines.forEach(m => {
-        if (m.totalStock <= m.safetyStock) {
-           detectedRisks.push({
-              id: `RSK-${m.code}`,
-              type: 'Stockout Risk',
-              severity: m.totalStock === 0 ? 'CRITICAL' : 'HIGH',
-              entity: m.genericName,
-              evidence: `Current stock (${m.totalStock}) is below safety threshold (${m.safetyStock}).`,
-              state: 'OBSERVED'
-           });
-        }
-     });
-     
-     // Add a predictive risk
-     detectedRisks.push({
-        id: 'RSK-PRED-1',
-        type: 'Supplier Delay',
-        severity: 'HIGH',
-        entity: 'Cureline Pharma',
-        evidence: 'Predictive Twin indicates 85% probability of 4-day delay on upcoming shipment based on regional weather.',
-        state: 'PREDICTED'
-     });
-
-     setRisks(detectedRisks);
+    // TODO: Fetch risks from backend API
+     setRisks([
+       {
+          id: 'RSK-PRED-1',
+          type: 'Supplier Delay',
+          severity: 'HIGH',
+          entity: 'Cureline Pharma',
+          evidence: 'Predictive Twin indicates 85% probability of 4-day delay on upcoming shipment based on regional weather.',
+          state: 'PREDICTED'
+       }
+     ]);
   }, []);
 
   return (

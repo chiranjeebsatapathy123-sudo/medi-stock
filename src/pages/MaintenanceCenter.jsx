@@ -1,6 +1,6 @@
 import React from 'react';
 import { Wrench, CalendarClock, PenTool, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { db } from '../services/mockDb';
+const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
 
 export function MaintenanceCenter({ setToast }) {
   const maintenance = db.maintenanceTasks || [];

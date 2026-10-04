@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Play, Save, History, TrendingUp, TrendingDown, ThermometerSnowflake, ShieldAlert, BarChart2, Layers, Download, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 import { simulationEngine } from '../services/simulationEngine';
-import { db } from '../services/mockDb';
+const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
 
 export function ScenarioPlanning({ setToast }) {
   const [running, setRunning] = useState(false);

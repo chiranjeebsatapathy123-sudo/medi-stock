@@ -6,11 +6,11 @@ import {
   Boxes, CalendarClock, ChevronRight, CircleHelp, ClipboardList, Clock3,
   Download, FileText, Filter, HeartPulse, LayoutDashboard, LogOut,
   Menu, Moon, PackageSearch, Plus, RefreshCw, Search, Settings, ShieldCheck,
-  ShoppingCart, Sparkles, Sun, Truck, Users, X, Zap, Map, Send, Play, MapPin, Undo2, TrendingDown, Camera, ShieldAlert, ThermometerSnowflake, BrainCircuit, Server, Wrench, GitMerge, Radio
+  ShoppingCart, Sparkles, Sun, Truck, Users, X, Zap, Map, Send, Play, MapPin, Undo2, TrendingDown, Camera, ShieldAlert, ThermometerSnowflake, BrainCircuit, Server, Wrench, GitMerge, Radio, ScanLine
 } from "lucide-react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
+import client from "./api/client";
 import "./styles.css";
-import { initializeDbFromApi } from "./services/mockDb";
 import { Dashboard } from "./pages/Dashboard";
 import { CommandCenter } from "./pages/CommandCenter";
 import { PharmacyOperations } from "./pages/PharmacyOperations";
@@ -38,6 +38,8 @@ import { ErrorManagement } from "./pages/ErrorManagement";
 import { ScenarioPlanning } from "./pages/ScenarioPlanning";
 import { ControlTower } from "./pages/ControlTower";
 import { PharmacyWorkspace } from "./pages/PharmacyWorkspace";
+import { IntelligenceCenter } from "./pages/IntelligenceCenter";
+import { WarehouseScanner } from "./pages/WarehouseScanner";
 
 const medicines = [
   { id: "MED-1042", name: "Amoxicillin 500mg", category: "Antibiotic", batch: "AMX-24F8", stock: 820, reorder: 300, expiry: "2027-04-18", supplier: "Cureline Pharma", status: "Healthy", price: 4.8 },
@@ -125,22 +127,25 @@ function Sidebar({ collapsed, setCollapsed, onLogout }) {
   const location = useLocation();
   const activePath = location.pathname;
   const getActiveName = (path) => {
-    const routeMap = {"/today": "Today", "/command-center": "Command Center", "/dashboard": "Dashboard", "/": "Control Tower", "/pharmacy-ops": "Pharmacy Ops", "/pharmacy": "Pharmacy Workspace", "/inventory": "Inventory", "/batches": "Batches & Expiry", "/purchases": "Purchases", "/suppliers": "Suppliers", "/logistics-network": "Logistics Network", "/logistics-ops": "Logistics Ops", "/facility-center": "Facility Center", "/digital-twin": "Digital Twin", "/vision-queue": "Vision Queue", "/maintenance": "Maintenance", "/system-health": "System Health", "/error-center": "Error Center", "/shelf-map": "Shelf Map", "/scenario-planning": "Scenario Planning", "/ai-operations": "AI Operations", "/financial-intel": "Financial Intel", "/predictive-risk": "Predictive Risk", "/analytics": "Analytics", "/ai-insights": "AI Insights", "/reports": "Reports", "/users-roles": "Users & Roles", "/movements": "Movements", "/settings": "Settings", "/quality-control": "Quality Control"};
+    const routeMap = {"/intelligence": "Intelligence Center", "/today": "Today", "/command-center": "Command Center", "/dashboard": "Dashboard", "/": "Control Tower", "/pharmacy-ops": "Pharmacy Ops", "/pharmacy": "Pharmacy Workspace", "/inventory": "Inventory", "/batches": "Batches & Expiry", "/purchases": "Purchases", "/suppliers": "Suppliers", "/logistics-network": "Logistics Network", "/logistics-ops": "Logistics Ops", "/facility-center": "Facility Center", "/digital-twin": "Digital Twin", "/vision-queue": "Vision Queue", "/maintenance": "Maintenance", "/system-health": "System Health", "/error-center": "Error Center", "/shelf-map": "Shelf Map", "/scenario-planning": "Scenario Planning", "/ai-operations": "AI Operations", "/financial-intel": "Financial Intel", "/predictive-risk": "Predictive Risk", "/analytics": "Analytics", "/ai-insights": "AI Insights", "/reports": "Reports", "/users-roles": "Users & Roles", "/movements": "Movements", "/settings": "Settings", "/quality-control": "Quality Control", "/scanner": "Mobile Scanner"};
     return routeMap[path] || "Control Tower";
   };
   const active = getActiveName(activePath);
 
   const groups = [
-    { title: "Workspace", items: [["Control Tower", Radio], ["Command Center", LayoutDashboard], ["Pharmacy Workspace", HeartPulse], ["Pharmacy Ops", HeartPulse], ["Logistics Network", Map], ["Logistics Ops", Truck], ["Inventory", Boxes], ["Shelf Map", MapPin], ["Batches & Expiry", CalendarClock], ["Purchases", ShoppingCart], ["Suppliers", Truck]] },
-    { title: "Smart Facility", items: [["Facility Center", Activity], ["Digital Twin", Server], ["Vision Queue", Camera], ["Maintenance", Wrench]] },
-    { title: "Insights", items: [["Scenario Planning", GitMerge], ["AI Operations", BrainCircuit], ["Financial Intel", BarChart3], ["Predictive Risk", ShieldAlert], ["AI Insights", Sparkles], ["Quality Control", ThermometerSnowflake], ["Reports", FileText]] },
-    { title: "System Ops", items: [["System Health", Activity], ["Error Center", AlertTriangle]] },
-    { title: "Administration", items: [["Users & Roles", Users], ["Movements", ClipboardList], ["Settings", Settings]] }
+    { title: "Core", items: [["Control Tower", Radio, "/"], ["Command Center", LayoutDashboard, "/command-center"], ["Intelligence Center", BrainCircuit, "/intelligence"]] },
+    { title: "Inventory", items: [["Inventory", Boxes, "/inventory"], ["Batches & Expiry", CalendarClock, "/batches"], ["Movements", ClipboardList, "/movements"], ["Shelf Map", Map, "/shelf-map"], ["Mobile Scanner", ScanLine, "/scanner"]] },
+    { title: "Procurement", items: [["Purchases", ShoppingCart, "/purchases"], ["Suppliers", Truck, "/suppliers"]] },
+    { title: "Pharmacy", items: [["Pharmacy Workspace", HeartPulse, "/pharmacy"], ["Pharmacy Ops", HeartPulse, "/pharmacy-ops"]] },
+    { title: "Logistics", items: [["Facility Center", MapPin, "/facility-center"], ["Logistics Network", Truck, "/logistics-network"], ["Logistics Ops", Zap, "/logistics-ops"]] },
+    { title: "Intelligence", items: [["Financial Intel", Activity, "/financial-intel"], ["Predictive Risk", AlertTriangle, "/predictive-risk"], ["AI Operations", Sparkles, "/ai-operations"], ["Digital Twin", Map, "/digital-twin"], ["Scenario Planning", BarChart3, "/scenario-planning"], ["Vision Queue", Camera, "/vision-queue"]] },
+    { title: "Administration", items: [["Users & Roles", Users, "/users-roles"], ["Quality Control", ShieldCheck, "/quality-control"], ["System Health", Server, "/system-health"], ["Error Center", AlertTriangle, "/error-center"], ["Maintenance", Wrench, "/maintenance"], ["Settings", Settings, "/settings"]] }
   ];
+
   return <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
     <div className="side-top"><div className="brand-mark"><HeartPulse size={22}/></div><span className="brand-text">MediStock</span><button className="icon-btn side-toggle" onClick={()=>setCollapsed(!collapsed)}><Menu size={19}/></button></div>
     <div className="nav-scroll">
-      {groups.map(g=><div className="nav-group" key={g.title}><span className="nav-title">{g.title}</span>{g.items.map(([name,Icon])=><button className={`nav-item ${active===name?"active":""}`} key={name} onClick={()=>navigate({"Today":"/today","Command Center":"/command-center","Dashboard":"/dashboard","Control Tower":"/","Pharmacy Workspace":"/pharmacy","Pharmacy Ops":"/pharmacy-ops","Inventory":"/inventory","Batches & Expiry":"/batches","Purchases":"/purchases","Suppliers":"/suppliers","Logistics Network":"/logistics-network","Logistics Ops":"/logistics-ops","Facility Center":"/facility-center","Digital Twin":"/digital-twin","Vision Queue":"/vision-queue","Maintenance":"/maintenance","System Health":"/system-health","Error Center":"/error-center","Shelf Map":"/shelf-map","Scenario Planning":"/scenario-planning","AI Operations":"/ai-operations","Financial Intel":"/financial-intel","Predictive Risk":"/predictive-risk","Analytics":"/analytics","AI Insights":"/ai-insights","Reports":"/reports","Users & Roles":"/users-roles","Movements":"/movements","Settings":"/settings","Quality Control":"/quality-control"}[name])}><Icon size={18}/><span>{name}</span>{name==="AI Insights"&&<i/>}</button>)}</div>)}
+      {groups.map(g=><div className="nav-group" key={g.title}><span className="nav-title">{g.title}</span>{g.items.map(([name,Icon,path])=><button className={`nav-item ${active===name?"active":""}`} key={name} onClick={()=>navigate(path)}><Icon size={18}/><span>{name}</span></button>)}</div>)}
     </div>
     <div className="side-bottom"><button className="nav-item"><CircleHelp size={18}/><span>Help center</span></button><button className="nav-item logout" onClick={onLogout}><LogOut size={18}/><span>Sign out</span></button></div>
   </aside>;
@@ -177,32 +182,58 @@ function GenericPage({ title, eyebrow, icon: Icon, description, action, children
 }
 
 function AIInsights() {
-  const [messages, setMessages] = useState([{role:"system", content:"Hello Admin. I'm your AI inventory assistant. Ask me anything about stock forecasting, financial intelligence, or generating purchase orders."}]);
+  const [messages, setMessages] = useState([{role:"system", content:"Hello Admin. I'm your Evidence-Based AI Assistant. Ask me anything about stockout risks, expiry exposures, or inventory health based on actual system data."}]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   
-  const handleSend = () => {
-    if(!input.trim()) return;
+  const handleSend = async () => {
+    if(!input.trim() || loading) return;
     
-    let responseContent = "Analyzing current inventory metrics and seasonal trends... I have found 3 antibiotic batches expiring next month, and Paracetamol stock is below the optimal threshold for upcoming flu season. I have drafted a Purchase Order for your review.";
-    let actionWidget = true;
-
-    if (input.toLowerCase().includes("inventory value") || input.toLowerCase().includes("spend") || input.toLowerCase().includes("cost")) {
-      responseContent = "I analyzed your financial metrics. The 2.4% increase in inventory value is driven by the recent bulk purchase of Amoxicillin (₹45,200) and Insulin Glargine (₹12,450). MedCore Labs remains your supplier with the largest spend this quarter.";
-      actionWidget = false;
-    }
-
-    setMessages([...messages, {role:"user", content:input}, {role:"system", content:responseContent, actionWidget}]);
+    const userMsg = input;
+    setMessages(prev => [...prev, {role:"user", content:userMsg}]);
     setInput("");
+    setLoading(true);
+
+    try {
+      const res = await client.post('/intelligence/ask', { query: userMsg });
+      const data = res.data;
+      
+      setMessages(prev => [...prev, {
+        role:"system", 
+        content: data.answer, 
+        actionWidget: data.actionWidget,
+        actionType: data.actionType,
+        evidence: data.evidence
+      }]);
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [...prev, {role:"system", content:"Sorry, I encountered an error checking the evidence database."}]);
+    } finally {
+      setLoading(false);
+    }
   }
+
   return <div className="page ai-page">
-    <div className="page-heading"><div><span className="eyebrow">INTELLIGENCE</span><h1>AI Inventory Assistant</h1><p>Natural language queries for your medical stock.</p></div></div>
+    <div className="page-heading"><div><span className="eyebrow">INTELLIGENCE</span><h1>Ask MediStock</h1><p>Natural language queries backed by real operational data.</p></div></div>
     <div className="ai-chat-layout panel">
        <div className="chat-window">
-          {messages.map((m,i)=><div key={i} className={`chat-bubble ${m.role}`}><div className="bubble-icon">{m.role==="system"?<Sparkles size={14}/>:<Users size={14}/>}</div><div style={{width:"100%"}}>{m.content}{m.actionWidget && <div className="panel po-card" style={{marginTop:15, background:"var(--surface)"}}><div className="po-head"><div className="po-title"><ShoppingCart size={14}/> <h3 style={{fontSize:13}}>Draft PO: Flu Restock</h3></div></div><div className="po-meta">Supplier: MedCore Labs • Est. Cost: ₹4,200</div><div className="po-actions"><button className="secondary">Review</button><button className="primary">Approve PO</button></div></div>}</div></div>)}
+          {messages.map((m,i)=><div key={i} className={`chat-bubble ${m.role}`}><div className="bubble-icon">{m.role==="system"?<BrainCircuit size={14}/>:<Users size={14}/>}</div><div style={{width:"100%"}}>{m.content}
+          
+          {m.actionWidget && m.evidence && (
+            <div className="panel po-card" style={{marginTop:15, background:"var(--surface)"}}>
+              <div className="po-head"><div className="po-title"><FileText size={14}/> <h3 style={{fontSize:13}}>Evidence Payload ({m.evidence.length || 0} records)</h3></div></div>
+              <div className="po-meta" style={{maxHeight: '100px', overflow: 'auto', fontSize: 11}}>
+                <pre>{JSON.stringify(m.evidence, null, 2)}</pre>
+              </div>
+              <div className="po-actions"><button className="secondary">Drill Down into Intelligence Center</button></div>
+            </div>
+          )}
+          </div></div>)}
+          {loading && <div className="chat-bubble system"><div className="bubble-icon"><RefreshCw className="spin" size={14}/></div><div>Querying operational evidence...</div></div>}
        </div>
        <div className="chat-input-row">
-          <input value={input} onChange={e=>setInput(e.target.value)} placeholder="e.g. Which antibiotics expire this month?" onKeyDown={e=>e.key==="Enter"&&handleSend()}/>
-          <button className="primary" onClick={handleSend}><Send size={15}/> Ask</button>
+          <input value={input} onChange={e=>setInput(e.target.value)} disabled={loading} placeholder="e.g. Which antibiotics expire this month?" onKeyDown={e=>e.key==="Enter"&&handleSend()}/>
+          <button className="primary" onClick={handleSend} disabled={loading}><Send size={15}/> Ask</button>
        </div>
     </div>
   </div>;
@@ -313,7 +344,7 @@ function CommandPalette({ open, setOpen }) {
 
   if(!open) return null;
 
-  const links = ["Today", "Dashboard", "Inventory", "Shelf Map", "Batches & Expiry", "Purchases", "Suppliers", "Analytics", "AI Insights", "Reports", "Users & Roles", "Movements", "Settings"];
+  const links = ["Intelligence Center", "Today", "Dashboard", "Inventory", "Shelf Map", "Batches & Expiry", "Purchases", "Suppliers", "Analytics", "AI Insights", "Reports", "Users & Roles", "Movements", "Settings"];
   const filtered = links.filter(l => l.toLowerCase().includes(query.toLowerCase()));
 
   return <div className="modal-backdrop" onMouseDown={()=>setOpen(false)} style={{alignItems:"flex-start", paddingTop:"10vh"}}>
@@ -322,7 +353,7 @@ function CommandPalette({ open, setOpen }) {
        <div className="cmd-list">
           {filtered.length===0 && <div className="empty-state">No results found</div>}
           {filtered.map(l => (
-            <button key={l} className="cmd-item" onClick={()=>{navigate({"Today":"/today","Command Center":"/command-center","Dashboard":"/dashboard","Control Tower":"/","Pharmacy Workspace":"/pharmacy","Pharmacy Ops":"/pharmacy-ops","Inventory":"/inventory","Batches & Expiry":"/batches","Purchases":"/purchases","Suppliers":"/suppliers","Logistics Network":"/logistics-network","Logistics Ops":"/logistics-ops","Facility Center":"/facility-center","Digital Twin":"/digital-twin","Vision Queue":"/vision-queue","Maintenance":"/maintenance","System Health":"/system-health","Error Center":"/error-center","Shelf Map":"/shelf-map","Scenario Planning":"/scenario-planning","AI Operations":"/ai-operations","Financial Intel":"/financial-intel","Predictive Risk":"/predictive-risk","Analytics":"/analytics","AI Insights":"/ai-insights","Reports":"/reports","Users & Roles":"/users-roles","Movements":"/movements","Settings":"/settings","Quality Control":"/quality-control"}[l]);setOpen(false)}}>
+            <button key={l} className="cmd-item" onClick={()=>{navigate({"Intelligence Center":"/intelligence","Today":"/today","Command Center":"/command-center","Dashboard":"/dashboard","Control Tower":"/","Pharmacy Workspace":"/pharmacy","Pharmacy Ops":"/pharmacy-ops","Inventory":"/inventory","Batches & Expiry":"/batches","Purchases":"/purchases","Suppliers":"/suppliers","Logistics Network":"/logistics-network","Logistics Ops":"/logistics-ops","Facility Center":"/facility-center","Digital Twin":"/digital-twin","Vision Queue":"/vision-queue","Maintenance":"/maintenance","System Health":"/system-health","Error Center":"/error-center","Shelf Map":"/shelf-map","Scenario Planning":"/scenario-planning","AI Operations":"/ai-operations","Financial Intel":"/financial-intel","Predictive Risk":"/predictive-risk","Analytics":"/analytics","AI Insights":"/ai-insights","Reports":"/reports","Users & Roles":"/users-roles","Movements":"/movements","Settings":"/settings","Quality Control":"/quality-control"}[l]);setOpen(false)}}>
               <ChevronRight size={14}/> Go to {l} <span className="kbd">Jump</span>
             </button>
           ))}
@@ -359,7 +390,7 @@ function Header({ theme, setTheme, onMenu, search, setSearch, setCmdOpen, setToa
   const location = useLocation();
   const activePath = location.pathname;
   const getActiveName = (path) => {
-    const routeMap = {"/today": "Today", "/command-center": "Command Center", "/dashboard": "Dashboard", "/": "Control Tower", "/pharmacy": "Pharmacy Workspace", "/pharmacy-ops": "Pharmacy Ops", "/inventory": "Inventory", "/batches": "Batches & Expiry", "/purchases": "Purchases", "/suppliers": "Suppliers", "/logistics-network": "Logistics Network", "/logistics-ops": "Logistics Ops", "/facility-center": "Facility Center", "/digital-twin": "Digital Twin", "/vision-queue": "Vision Queue", "/maintenance": "Maintenance", "/system-health": "System Health", "/error-center": "Error Center", "/shelf-map": "Shelf Map", "/scenario-planning": "Scenario Planning", "/ai-operations": "AI Operations", "/financial-intel": "Financial Intel", "/predictive-risk": "Predictive Risk", "/analytics": "Analytics", "/ai-insights": "AI Insights", "/reports": "Reports", "/users-roles": "Users & Roles", "/movements": "Movements", "/settings": "Settings", "/quality-control": "Quality Control"};
+    const routeMap = {"/intelligence":"Intelligence Center", "/today": "Today", "/command-center": "Command Center", "/dashboard": "Dashboard", "/": "Control Tower", "/pharmacy": "Pharmacy Workspace", "/pharmacy-ops": "Pharmacy Ops", "/inventory": "Inventory", "/batches": "Batches & Expiry", "/purchases": "Purchases", "/suppliers": "Suppliers", "/logistics-network": "Logistics Network", "/logistics-ops": "Logistics Ops", "/facility-center": "Facility Center", "/digital-twin": "Digital Twin", "/vision-queue": "Vision Queue", "/maintenance": "Maintenance", "/system-health": "System Health", "/error-center": "Error Center", "/shelf-map": "Shelf Map", "/scenario-planning": "Scenario Planning", "/ai-operations": "AI Operations", "/financial-intel": "Financial Intel", "/predictive-risk": "Predictive Risk", "/analytics": "Analytics", "/ai-insights": "AI Insights", "/reports": "Reports", "/users-roles": "Users & Roles", "/movements": "Movements", "/settings": "Settings", "/quality-control": "Quality Control", "/scanner": "Mobile Scanner"};
     return routeMap[path] || "Control Tower";
   };
   const active = getActiveName(activePath);
@@ -380,13 +411,6 @@ function Header({ theme, setTheme, onMenu, search, setSearch, setCmdOpen, setToa
 
 function App() {
   const [logged, setLogged] = useState(() => localStorage.getItem("medistock_logged") === "true");
-  const [dbLoading, setDbLoading] = useState(logged);
-  
-  useEffect(() => {
-    if (logged) {
-      initializeDbFromApi().then(() => setDbLoading(false));
-    }
-  }, [logged]);
   
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("medistock_theme") || "light");
@@ -411,7 +435,6 @@ function App() {
   }, []);
 
   if(!logged) return <Login onLogin={()=>setLogged(true)}/>;
-  if(dbLoading) return <div className="page" style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'var(--muted)'}}>Loading Enterprise Data...</div>;
   
   const Fallback = () => (
     <div className="page fade-in" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', height: '100%', padding: '40px'}}>
@@ -424,6 +447,7 @@ function App() {
   const content = (
     <Routes>
       <Route path="/" element={<ControlTower setToast={setToast}/>} />
+      <Route path="/intelligence" element={<IntelligenceCenter setToast={setToast}/>} />
       <Route path="/today" element={<Today setToast={setToast}/>} />
       <Route path="/command-center" element={<CommandCenter setToast={setToast}/>} />
       <Route path="/dashboard" element={<Dashboard setToast={setToast}/>} />
@@ -436,6 +460,7 @@ function App() {
       <Route path="/logistics-network" element={<LogisticsCommandCenter setToast={setToast}/>} />
       <Route path="/logistics-ops" element={<LogisticsOperations setToast={setToast}/>} />
       <Route path="/facility-center" element={<SmartFacilityCenter setToast={setToast}/>} />
+      <Route path="/scanner" element={<WarehouseScanner setToast={setToast}/>} />
       <Route path="/digital-twin" element={<WarehouseDigitalTwin setToast={setToast}/>} />
       <Route path="/vision-queue" element={<VisionReviewQueue setToast={setToast}/>} />
       <Route path="/maintenance" element={<MaintenanceCenter setToast={setToast}/>} />

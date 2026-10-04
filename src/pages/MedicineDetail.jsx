@@ -1,13 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, Edit, Trash2, TrendingUp, AlertTriangle, Boxes, Clock3 } from "lucide-react";
-import { db } from "../services/mockDb";
+import { inventoryService } from "../services/inventoryService";
 
 export function MedicineDetail({ medicine, onBack }) {
   const [activeTab, setActiveTab] = useState("overview");
+  const [batches, setBatches] = useState([]);
+  const [movements, setMovements] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get related data
-  const batches = db.batches.filter(b => b.medicineId === medicine.id);
-  const movements = db.movements.filter(m => m.medicineId === medicine.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const fetchedBatches = await inventoryService.getBatches(medicine.id);
+        const allMovements = await inventoryService.getInventoryMovements();
+        const filteredMovements = allMovements.filter(m => m.medicineId === medicine.id || m.medicine?.id === medicine.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+        setBatches(fetchedBatches);
+        setMovements(filteredMovements);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [medicine.id]);
   
   return <div className="page">
     <div className="page-heading">
@@ -73,7 +90,7 @@ export function MedicineDetail({ medicine, onBack }) {
              {batches.length === 0 ? <div style={{padding:40, textAlign:"center"}}>No active batches</div> : batches.map(b => (
                 <div className="data-row" key={b.id}>
                    <b>{b.batchNumber}</b>
-                   <span>{db.locations.find(l=>l.id===b.locationId)?.name || b.locationId}</span>
+                   <span>{b.location?.name || b.locationId || "Unknown"}</span>
                    <span><b>{b.currentQty}</b></span>
                    <span>{new Date(b.expiryDate).toLocaleDateString()}</span>
                    <span><span className={`status ${b.status==="ACTIVE"?"healthy":"medium-risk"}`}>{b.status}</span></span>
@@ -92,8 +109,8 @@ export function MedicineDetail({ medicine, onBack }) {
                    <span>{new Date(m.timestamp).toLocaleString()}</span>
                    <span><b>{m.type.replace("_"," ")}</b></span>
                    <span style={{color: m.quantity>0?"var(--green)":"var(--rose)", fontWeight:"bold"}}>{m.quantity>0?"+":""}{m.quantity}</span>
-                   <span>{db.batches.find(b=>b.id===m.batchId)?.batchNumber}</span>
-                   <span>{db.users.find(u=>u.id===m.user)?.name || m.user}</span>
+                   <span>{m.batch?.batchNumber || m.batchId}</span>
+                   <span>{m.user?.name || m.user || "System"}</span>
                 </div>
              ))}
           </div>

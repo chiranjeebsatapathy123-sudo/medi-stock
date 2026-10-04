@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowDownRight, ArrowUpRight, Plus, RefreshCw, Send, Search } from "lucide-react";
-import { db } from "../services/mockDb";
 import { inventoryService } from "../services/inventoryService";
 import { Modal, EmptyState } from "../components/ui";
 
 export function Movements({ setToast }) {
-  const [movements, setMovements] = useState(db.movements);
+  const [movements, setMovements] = useState([]);
+  const [medicines, setMedicines] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showIssue, setShowIssue] = useState(false);
   
   const [medicineId, setMedicineId] = useState("");
@@ -14,11 +16,27 @@ export function Movements({ setToast }) {
   const [reason, setReason] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   
+  useEffect(() => {
+    async function loadData() {
+      const [movData, medData, locData] = await Promise.all([
+        inventoryService.getInventoryMovements(),
+        inventoryService.getMedicines(),
+        inventoryService.getLocations()
+      ]);
+      setMovements(movData || []);
+      setMedicines(medData || []);
+      setLocations(locData || []);
+      setLoading(false);
+    }
+    loadData();
+  }, []);
+
   const handleIssue = async () => {
     if(!medicineId || !quantity || !locationId) return;
     try {
-      await inventoryService.issueStock(medicineId, parseInt(quantity), "USR-001", reason, locationId, "MANUAL-ISSUE");
-      setMovements([...db.movements]);
+      await inventoryService.issueStock({ medicineId, quantity: parseInt(quantity), userId: "USR-001", reason, locationId, type: "MANUAL-ISSUE" });
+      const newMovs = await inventoryService.getInventoryMovements();
+      setMovements(newMovs || []);
       setShowIssue(false);
       setIsDirty(false);
       if (setToast) setToast("Stock issued successfully via FEFO");
@@ -55,23 +73,23 @@ export function Movements({ setToast }) {
           <span>User & Ref</span>
         </div>
         
-        {movements.length === 0 ? <EmptyState icon={RefreshCw} title="No movements found" description="There are no inventory transactions in the system yet." /> :
+        {loading ? <div style={{padding:60,textAlign:"center", color: 'var(--muted)'}}>Loading movements...</div> :
+        movements.length === 0 ? <EmptyState icon={RefreshCw} title="No movements found" description="There are no inventory transactions in the system yet." /> :
         movements.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(m => {
-          const med = db.medicines.find(x => x.id === m.medicineId);
-          const batch = db.batches.find(x => x.id === m.batchId);
+          const med = medicines.find(x => x.id === m.medicineId);
           
           return <div className="data-row" key={m.id} style={{gridTemplateColumns:"1.5fr 1fr 1.5fr 1.5fr 1fr"}}>
             <div className="med-cell">
               <div className={`activity-icon ${m.quantity > 0 ? 'in' : 'out'}`} style={{background: m.quantity > 0 ? "var(--green-soft)" : "var(--rose-soft)", color: m.quantity > 0 ? "var(--green)" : "var(--rose)"}}>
                  {m.quantity > 0 ? <ArrowDownRight size={17}/> : <ArrowUpRight size={17}/>}
               </div>
-              <div><b>{Math.abs(m.quantity)} {med?.unit} {med?.genericName}</b><span>Batch: {batch?.batchNumber}</span></div>
+              <div><b>{Math.abs(m.quantity)} {med?.unit || 'units'} {med?.genericName || m.medicineName}</b><span>Batch: {m.batchNumber || m.batchId}</span></div>
             </div>
             
             <span><b>{m.type.replace("_", " ")}</b><small>{new Date(m.timestamp).toLocaleString()}</small></span>
-            <span>{db.locations.find(l=>l.id===m.sourceId)?.name || db.suppliers.find(s=>s.id===m.sourceId)?.name || m.sourceId}</span>
-            <span>{db.locations.find(l=>l.id===m.destId)?.name || m.destId}</span>
-            <span><b>{db.users.find(u=>u.id===m.user)?.name || m.user}</b><small>{m.reason}</small></span>
+            <span>{locations.find(l=>l.id===m.sourceId)?.name || m.sourceId || 'System'}</span>
+            <span>{locations.find(l=>l.id===m.destId)?.name || m.destId || 'System'}</span>
+            <span><b>{m.userName || m.user || 'Unknown'}</b><small>{m.reason}</small></span>
           </div>
         })}
       </div>
@@ -88,14 +106,14 @@ export function Movements({ setToast }) {
          <label>Medicine
             <select value={medicineId} onChange={e=>setMedicineId(e.target.value)}>
                <option value="">Select Medicine...</option>
-               {db.medicines.map(m => <option key={m.id} value={m.id}>{m.genericName} {m.strength}</option>)}
+               {medicines.map(m => <option key={m.id} value={m.id}>{m.genericName} {m.strength}</option>)}
             </select>
          </label>
          <label>Quantity to Issue<input type="number" value={quantity} onChange={e=>setQuantity(e.target.value)} placeholder="0"/></label>
          <label>Destination Location
             <select value={locationId} onChange={e=>setLocationId(e.target.value)}>
                <option value="">Select Destination...</option>
-               {db.locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+               {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                <option value="PATIENT">Dispense to Patient</option>
             </select>
          </label>

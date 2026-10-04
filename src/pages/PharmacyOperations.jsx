@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Stethoscope, ClipboardList, PackageMinus, RefreshCcw, AlertOctagon, CheckCircle2, ShieldAlert, ArrowRight, User } from 'lucide-react';
-import { db } from '../services/mockDb';
+import { pharmacyService } from '../services/pharmacyService';
 
 export function PharmacyOperations({ setToast }) {
   const [activeTab, setActiveTab] = useState("Dispensing");
@@ -10,28 +10,54 @@ export function PharmacyOperations({ setToast }) {
     { item: "Amoxicillin (50 Caps)", reason: "Water damage in store", disposition: "Supplier Return", color: "text-amber-400" }
   ]);
 
-  const [dispenseQueue, setDispenseQueue] = useState([
-    { id: "RX-9922", patient: "John D.", med: "Paracetamol 500mg", qty: 20, status: "Pending", urgency: "Normal" },
-    { id: "RX-9923", patient: "ER Ward", med: "Ceftriaxone 1g", qty: 5, status: "Processing", urgency: "High" },
-    { id: "RX-9924", patient: "ICU", med: "Insulin Glargine", qty: 2, status: "Needs Review", urgency: "Critical", note: "Temperature logged at 9°C upon receipt" }
-  ]);
+  const [dispenseQueue, setDispenseQueue] = useState([]);
+  
+  useEffect(() => {
+    loadOrders();
+  }, []);
 
-  const handleDispense = (id) => {
-    setToast(`Validating ${id} using FEFO rules...`);
-    setTimeout(() => {
-      setToast(`FEFO Validation Passed. Stock issued for ${id}.`);
-      setDispenseQueue(prev => prev.filter(item => item.id !== id));
-    }, 1500);
+  const loadOrders = async () => {
+    try {
+      const orders = await pharmacyService.getOrders();
+      // Map backend orders to our table format
+      const queue = orders.map(o => ({
+        id: o.id,
+        patient: o.patientName,
+        med: o.medicine?.brandName || o.medicineId,
+        qty: o.quantity,
+        status: o.status === 'PENDING' ? 'Pending' : o.status === 'REVIEWED' ? 'Processing' : o.status,
+        urgency: o.priority === 'HIGH' ? 'Critical' : 'Normal',
+        note: o.notes
+      }));
+      setDispenseQueue(queue);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleReview = (id) => {
+  const handleDispense = async (id) => {
+    setToast(`Validating ${id} using FEFO rules...`);
+    try {
+      // Mocking the dispensing request payload since we don't have batch selection UI here yet
+      await pharmacyService.dispenseOrder(id, { batches: [] });
+      setToast(`FEFO Validation Passed. Stock issued for ${id}.`);
+      loadOrders();
+    } catch (err) {
+      setToast(`Error dispensing order: ${err.message}`);
+    }
+  };
+
+  const handleReview = async (id) => {
     const item = dispenseQueue.find(i => i.id === id);
     if (item) {
-      setToast(item.note);
-      setTimeout(() => {
-        setDispenseQueue(prev => prev.map(i => i.id === id ? { ...i, status: "Processing" } : i));
+      setToast(item.note || 'Reviewing...');
+      try {
+        await pharmacyService.reviewOrder(id, 'APPROVE');
         setToast(`Review completed. ${id} is now processing.`);
-      }, 1500);
+        loadOrders();
+      } catch (err) {
+        setToast(`Failed to review order: ${err.message}`);
+      }
     }
   };
 

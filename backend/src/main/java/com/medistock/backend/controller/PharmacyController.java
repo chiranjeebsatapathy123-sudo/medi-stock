@@ -64,4 +64,20 @@ public class PharmacyController {
         if (tenantId == null) return ResponseEntity.status(403).build();
         return ResponseEntity.ok(pharmacyService.dispenseOrder(id, tenantId, userDetails.getId(), request));
     }
+
+    @PostMapping("/orders/{id}/second-verify")
+    @PreAuthorize("hasAuthority('PHARMACY_REVIEW') or hasAuthority('PHARMACIST') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<MedicationOrder> secondVerifyOrder(@PathVariable UUID id, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+        return ResponseEntity.ok(pharmacyService.secondVerifyOrder(id, tenantId, userDetails.getId()));
+    }
+
+    @PostMapping("/dispensing/{id}/reverse")
+    @PreAuthorize("hasAuthority('PHARMACY_REVERSE') or hasAuthority('PHARMACY_MANAGER') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<DispensingRecord> reverseDispense(@PathVariable UUID id, @RequestBody Map<String, String> body, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+        return ResponseEntity.ok(pharmacyService.reverseDispense(id, tenantId, userDetails.getId(), body.get("reason")));
+    }
 }

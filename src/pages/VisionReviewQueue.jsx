@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Camera, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
-import { db, saveDb } from '../services/mockDb';
+const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
+const saveDb = () => {};
 
 export function VisionReviewQueue({ setToast }) {
   const [renderTrigger, setRenderTrigger] = useState(0);

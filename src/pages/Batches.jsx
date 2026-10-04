@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { Filter, CalendarClock, ShieldAlert, ArrowRight, PackageSearch } from "lucide-react";
 import { inventoryService } from "../services/inventoryService";
-import { db } from "../services/mockDb";
 import { EmptyState, Modal } from "../components/ui";
 
 export function Batches({ setToast }) {
   const [batches, setBatches] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
   const [actionModal, setActionModal] = useState(null);
 
   useEffect(() => {
-    loadBatches();
+    loadData();
   }, []);
 
-  async function loadBatches() {
+  async function loadData() {
     setLoading(true);
-    const data = await inventoryService.getBatches();
+    const [data, locs] = await Promise.all([
+      inventoryService.getBatches(),
+      inventoryService.getLocations()
+    ]);
+    setLocations(locs);
     
     // Calculate risk logic
     const today = new Date();
@@ -91,7 +95,7 @@ export function Batches({ setToast }) {
               <div className="medicine-icon"><PackageSearch size={17}/></div>
               <div><b>{b.medicineName}</b><span>Batch: {b.batchNumber} • Value: ₹{(b.currentQty * b.purchasePrice).toLocaleString()}</span></div>
             </div>
-            <span>{db.locations.find(l=>l.id===b.locationId)?.name || b.locationId}</span>
+            <span>{locations.find(l=>l.id===b.locationId)?.name || b.locationId}</span>
             <span><b>{b.currentQty} units</b></span>
             <span>
               {new Date(b.expiryDate).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})}
@@ -137,18 +141,21 @@ export function Batches({ setToast }) {
             </div>
           </div>
 
-          <button className="primary" style={{ marginTop: '8px', padding: '14px', width: '100%', display: 'flex', justifyContent: 'center' }} onClick={() => {
-            if (actionModal.action === 'Transfer to fast-moving location') {
-              const b = db.batches.find(x => x.id === actionModal.id);
-              if (b) b.locationId = 'LOC-ER';
-              setToast(`Successfully transferred Batch ${actionModal.batchNumber} to ER Annex to accelerate consumption.`);
-            } else if (actionModal.action === 'Mark for disposal') {
-              db.batches = db.batches.filter(x => x.id !== actionModal.id);
-              setToast(`Batch ${actionModal.batchNumber} has been logged for regulatory disposal.`);
-            } else {
-              setToast(`Recommendation executed for ${actionModal.batchNumber}.`);
+          <button className="primary" style={{ marginTop: '8px', padding: '14px', width: '100%', display: 'flex', justifyContent: 'center' }} onClick={async () => {
+            try {
+              if (actionModal.action === 'Transfer to fast-moving location') {
+                await inventoryService.transferStock({ batchId: actionModal.id, toLocationId: 'LOC-ER', quantity: actionModal.currentQty });
+                setToast(`Successfully transferred Batch ${actionModal.batchNumber} to ER Annex to accelerate consumption.`);
+              } else if (actionModal.action === 'Mark for disposal') {
+                await inventoryService.disposeStock({ batchId: actionModal.id, quantity: actionModal.currentQty });
+                setToast(`Batch ${actionModal.batchNumber} has been logged for regulatory disposal.`);
+              } else {
+                setToast(`Recommendation executed for ${actionModal.batchNumber}.`);
+              }
+              await loadData();
+            } catch (err) {
+              setToast(`Failed to execute recommendation.`);
             }
-            loadBatches();
             setActionModal(null);
           }}>
             Execute & Resolve Risk

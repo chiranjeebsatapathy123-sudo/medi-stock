@@ -43,13 +43,34 @@ export function Inventory({ search, setToast }) {
     }, 2500);
   }
 
-  const handleSave = () => {
-    setShowAdd(false);
-    setEditingMed(null);
-    setScannedData(null);
-    setIsDirty(false);
-    setToast("Medicine saved successfully");
-    loadMeds();
+  const handleSave = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Convert field names to match backend entity
+    data.medicineCode = data.code;
+    delete data.code;
+
+    // Convert numeric fields
+    data.safetyStock = parseInt(data.safetyStock || 0);
+    data.reorderLevel = parseInt(data.reorderLevel || 0);
+
+    try {
+      if (editingMed) {
+        // Mock update for now
+      } else {
+        await inventoryService.createMedicine(data);
+      }
+      setShowAdd(false);
+      setEditingMed(null);
+      setScannedData(null);
+      setIsDirty(false);
+      setToast("Medicine saved successfully");
+      loadMeds();
+    } catch(err) {
+      setToast("Failed to save medicine");
+    }
   }
 
   const handleClose = () => {
@@ -161,33 +182,33 @@ export function Inventory({ search, setToast }) {
         </div>
       ) : null}
 
-      <div className="form-grid" style={{opacity: isScanning ? 0.3 : 1, pointerEvents: isScanning ? "none" : "auto", gridTemplateColumns:"1fr 1fr", gap:15}} onChange={() => setIsDirty(true)}>
-        <label>Medicine Code<input defaultValue={editingMed?.code} placeholder="e.g. AMX500"/></label>
-        <label>Generic Name<input defaultValue={editingMed?.genericName || scannedData?.genericName} placeholder="e.g. Amoxicillin"/></label>
-        <label>Brand Name<input defaultValue={editingMed?.brandName || scannedData?.brandName} placeholder="e.g. Amoxil"/></label>
-        <label>Strength<input defaultValue={editingMed?.strength || scannedData?.strength} placeholder="e.g. 500mg"/></label>
+      <form id="medicineForm" className="form-grid" style={{opacity: isScanning ? 0.3 : 1, pointerEvents: isScanning ? "none" : "auto", gridTemplateColumns:"1fr 1fr", gap:15}} onChange={() => setIsDirty(true)} onSubmit={handleSave}>
+        <label>Medicine Code<input name="code" defaultValue={editingMed?.code} placeholder="e.g. AMX500" required/></label>
+        <label>Generic Name<input name="genericName" defaultValue={editingMed?.genericName || scannedData?.genericName} placeholder="e.g. Amoxicillin" required/></label>
+        <label>Brand Name<input name="brandName" defaultValue={editingMed?.brandName || scannedData?.brandName} placeholder="e.g. Amoxil" required/></label>
+        <label>Strength<input name="strength" defaultValue={editingMed?.strength || scannedData?.strength} placeholder="e.g. 500mg" required/></label>
         
         <label>Category
-          <select defaultValue={editingMed?.category || scannedData?.category}>
+          <select name="category" defaultValue={editingMed?.category || scannedData?.category}>
             <option>Antibiotic</option><option>Analgesic</option><option>Cardiology</option><option>Diabetes</option>
           </select>
         </label>
         <label>Dosage Form
-          <select defaultValue={editingMed?.dosageForm}>
+          <select name="dosageForm" defaultValue={editingMed?.dosageForm}>
             <option>Tablet</option><option>Capsule</option><option>Injection</option><option>Syrup</option>
           </select>
         </label>
-        <label>Manufacturer<input defaultValue={editingMed?.manufacturer || scannedData?.manufacturer}/></label>
-        <label>Unit of Measure<select defaultValue={editingMed?.unit}><option>Tablet</option><option>Capsule</option><option>Vial</option></select></label>
+        <label>Manufacturer<input name="manufacturer" defaultValue={editingMed?.manufacturer || scannedData?.manufacturer}/></label>
+        <label>Unit of Measure<select name="unit" defaultValue={editingMed?.unit}><option>Tablet</option><option>Capsule</option><option>Vial</option></select></label>
         
-        <label>Safety Stock<input type="number" defaultValue={editingMed?.safetyStock} placeholder="100"/></label>
-        <label>Reorder Level<input type="number" defaultValue={editingMed?.reorderLevel} placeholder="200"/></label>
+        <label>Safety Stock<input name="safetyStock" type="number" defaultValue={editingMed?.safetyStock} placeholder="100"/></label>
+        <label>Reorder Level<input name="reorderLevel" type="number" defaultValue={editingMed?.reorderLevel} placeholder="200"/></label>
+        
+      <div className="modal-actions" style={{gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end", gap: 10, marginTop:20}}>
+        <button type="button" className="secondary" onClick={handleClose}>Cancel</button>
+        <button type="submit" className="primary">{editingMed ? "Save Changes" : "Save Medicine"}</button>
       </div>
-      
-      <div className="modal-actions" style={{marginTop:20}}>
-        <button className="secondary" onClick={handleClose}>Cancel</button>
-        <button className="primary" onClick={handleSave}>{editingMed ? "Save Changes" : "Save Medicine"}</button>
-      </div>
+      </form>
     </Modal>}
   </div>;
 }

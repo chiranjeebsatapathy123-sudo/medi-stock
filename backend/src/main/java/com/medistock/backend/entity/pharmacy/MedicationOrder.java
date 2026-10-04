@@ -51,6 +51,12 @@ public class MedicationOrder {
     @Column(name = "reviewed_at")
     private OffsetDateTime reviewedAt;
 
+    @Column(name = "second_verifier_id")
+    private UUID secondVerifierId;
+
+    @Column(name = "second_verified_at")
+    private OffsetDateTime secondVerifiedAt;
+
     @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 

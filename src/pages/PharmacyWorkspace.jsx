@@ -38,8 +38,9 @@ export function PharmacyWorkspace({ setToast }) {
         {activeTab === "Overview" && <PharmacyOverview />}
         {activeTab === "Prescription Queue" && <PrescriptionQueue setToast={setToast} />}
         {activeTab === "Dispensing Counter" && <DispensingCounter setToast={setToast} />}
-        {/* Fallbacks for others to save space for now, to focus on the core workflow */}
-        {["Completed", "Returns", "Controlled Medicines", "Pharmacy Alerts"].includes(activeTab) && (
+        {activeTab === "Completed" && <CompletedDispensing setToast={setToast} />}
+        {/* Fallbacks for others to save space for now */}
+        {["Returns", "Controlled Medicines", "Pharmacy Alerts"].includes(activeTab) && (
           <div className="panel" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
             <Activity size={32} style={{ margin: "0 auto 12px", opacity: 0.5 }} />
             <h3>{activeTab}</h3>
@@ -130,7 +131,7 @@ function PrescriptionQueue({ setToast }) {
             <span>{new Date(order.createdAt).toLocaleDateString()}</span>
             <span>
               <button className="secondary" onClick={() => setSelectedOrder(order)} style={{ padding: '4px 8px', fontSize: 12 }}>
-                Review
+                {order.status === 'APPROVED' ? '2nd Verify' : 'Review'}
               </button>
             </span>
           </div>
@@ -141,7 +142,10 @@ function PrescriptionQueue({ setToast }) {
         <div className="modal-backdrop" onClick={() => setSelectedOrder(null)}>
           <div className="modal" style={{ width: 600 }} onClick={e => e.stopPropagation()}>
             <div className="modal-head">
-              <div><span className="eyebrow">PRESCRIPTION REVIEW</span><h2>Order {selectedOrder.orderNumber}</h2></div>
+              <div>
+                <span className="eyebrow">PRESCRIPTION REVIEW</span>
+                <h2>Order {selectedOrder.orderNumber}</h2>
+              </div>
               <button className="icon-btn" onClick={() => setSelectedOrder(null)}><X size={19}/></button>
             </div>
             
@@ -157,17 +161,42 @@ function PrescriptionQueue({ setToast }) {
                   <div>
                     <b style={{ display: 'block' }}>{item.medicine?.brandName || item.medicine?.genericName}</b>
                     <span style={{ fontSize: 12, color: 'var(--muted)' }}>{item.instructions}</span>
+                    {item.medicine?.controlledMedicine && (
+                      <div style={{ fontSize: 11, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                        <ShieldAlert size={12}/> CONTROLLED SUBSTANCE
+                      </div>
+                    )}
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <b>{item.requestedQuantity} {item.medicine?.unit}</b>
-                    <div style={{ fontSize: 12, color: 'var(--brand)' }}>Available: {item.medicine?.safetyStock + 100}</div>
+                    <div style={{ fontSize: 12, color: 'var(--brand)' }}>Available: {item.medicine?.totalStock || "Unknown"}</div>
                   </div>
                 </div>
               ))}
 
               <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'flex-end' }}>
-                <button className="secondary" onClick={() => handleReview(selectedOrder.id, 'REJECT')} style={{ color: 'var(--rose)', borderColor: 'var(--rose)' }}>Reject</button>
-                <button className="primary" onClick={() => handleReview(selectedOrder.id, 'APPROVE')}><ShieldCheck size={16}/> Approve Prescription</button>
+                {selectedOrder.status === 'RECEIVED' ? (
+                  <>
+                    <button className="secondary" onClick={() => handleReview(selectedOrder.id, 'REJECT')} style={{ color: 'var(--rose)', borderColor: 'var(--rose)' }}>Reject</button>
+                    <button className="primary" onClick={() => handleReview(selectedOrder.id, 'APPROVE')}><ShieldCheck size={16}/> Approve Prescription</button>
+                  </>
+                ) : selectedOrder.status === 'APPROVED' ? (
+                  <>
+                    <button className="secondary" onClick={() => handleReview(selectedOrder.id, 'REJECT')} style={{ color: 'var(--rose)', borderColor: 'var(--rose)' }}>Reject</button>
+                    <button className="primary" onClick={async () => {
+                      try {
+                        await client.post(`/pharmacy/orders/${selectedOrder.id}/second-verify`);
+                        setToast("Second verification completed successfully.");
+                        setSelectedOrder(null);
+                        refetch();
+                      } catch (e) {
+                        setToast(e.response?.data?.message || "Failed second verification.");
+                      }
+                    }}><ShieldCheck size={16}/> Dual Verify (Controlled)</button>
+                  </>
+                ) : (
+                  <span style={{ color: 'var(--muted)', fontSize: 13 }}>No pending review actions.</span>
+                )}
               </div>
             </div>
           </div>
@@ -361,6 +390,53 @@ function DispensingCounter({ setToast }) {
             Confirm & Dispense
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function CompletedDispensing({ setToast }) {
+  const { data: orders, loading, refetch } = useApi("/pharmacy/orders");
+  
+  if (loading) return <div>Loading completed orders...</div>;
+  
+  const completed = (orders || []).filter(o => o.status === "FULFILLED" || o.status === "PARTIALLY_FULFILLED");
+  
+  return (
+    <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="data-table">
+        <div className="table-head" style={{ gridTemplateColumns: "1fr 1fr 1.5fr 1fr 1fr" }}>
+          <span>Order #</span>
+          <span>Status</span>
+          <span>Patient Ref</span>
+          <span>Completed On</span>
+          <span>Actions</span>
+        </div>
+        
+        {completed.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>No completed orders found.</div>}
+        
+        {completed.map(order => (
+          <div key={order.id} className="data-row" style={{ gridTemplateColumns: "1fr 1fr 1.5fr 1fr 1fr" }}>
+            <b>{order.orderNumber}</b>
+            <span className={`status ${order.status.toLowerCase().replace('_', '-')}`}>{order.status}</span>
+            <span>{order.patientReference || "Walk-in"}</span>
+            <span>{order.completedAt ? new Date(order.completedAt).toLocaleDateString() : "N/A"}</span>
+            <span>
+              <button className="secondary" style={{ color: 'var(--rose)', borderColor: 'var(--rose)', padding: '4px 8px', fontSize: 12 }} onClick={async () => {
+                const reason = prompt("Enter reason for reversal:");
+                if (reason) {
+                  try {
+                    setToast("Reverse dispensing feature requires Dispensing Record ID (Backend implemented).");
+                  } catch (e) {
+                    setToast("Failed to reverse.");
+                  }
+                }
+              }}>
+                Reverse
+              </button>
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Sparkles, BarChart3, AlertTriangle, TrendingDown, Clock3, ShieldAlert, CheckCircle2, Bot, BrainCircuit, Activity } from 'lucide-react';
-import { db } from '../services/mockDb';
+import { inventoryService } from '../services/inventoryService';
 
 const data = [
   { name: 'Jan', value: 2.1 },
@@ -28,15 +28,24 @@ const itemVariants = {
 };
 
 export function CommandCenter({ setActive, setToast }) {
-  const totalValue = db.batches.reduce((sum, b) => sum + (b.currentQty * b.purchasePrice), 0);
-  const expiringValue = db.batches.filter(b => new Date(b.expiryDate) < new Date(Date.now() + 90*86400000)).reduce((sum, b) => sum + (b.currentQty * b.purchasePrice), 0);
-  
-  const lowStockCount = db.medicines.filter(m => {
-    const total = db.batches.filter(b => b.medicineId === m.id).reduce((s,b)=>s+b.currentQty, 0);
-    return total <= m.reorderLevel;
-  }).length;
-
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [aiMode, setAiMode] = useState(false);
+
+  useEffect(() => {
+    async function loadData() {
+      const data = await inventoryService.getDashboardStats();
+      setStats(data);
+      setLoading(false);
+    }
+    loadData();
+  }, []);
+
+  if (loading) return <div className="page" style={{display:"flex", alignItems:"center", justifyContent:"center", color:"var(--muted)"}}>Loading command center...</div>;
+
+  const totalValue = stats?.inventoryValue || 0;
+  const expiringValue = stats?.expiringValue || 0;
+  const lowStockCount = stats?.lowStockItems || 0;
 
   return (
     <motion.div 

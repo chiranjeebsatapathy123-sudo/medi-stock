@@ -1,9 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Server, ThermometerSnowflake, Activity, Package, Maximize2 } from 'lucide-react';
-import { db } from '../services/mockDb';
+import client from '../api/client';
 
 export function WarehouseDigitalTwin({ setToast }) {
-  const locations = db.warehouseLocations || [];
+  const [locations, setLocations] = useState([]);
+  
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const whRes = await client.get('/warehouse');
+        if (whRes.data.length > 0) {
+          const whId = whRes.data[0].id;
+          const locRes = await client.get(`/warehouse/${whId}/locations`);
+          setLocations(locRes.data);
+        }
+      } catch (e) {
+        console.error(e);
+        setToast("Failed to load warehouse data");
+      }
+    }
+    loadData();
+  }, [setToast]);
 
   return (
     <div className="page fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -32,14 +49,14 @@ export function WarehouseDigitalTwin({ setToast }) {
                <div style={{ position: 'absolute', top: '100px', left: '100px', width: '200px', height: '300px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px' }}>
                   <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase' }}>Central Dry Zone</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                     {locations.filter(l => l.zone === 'ZONE-A-DRY').map(loc => {
-                        const util = loc.current / loc.capacity;
+                     {locations.filter(l => l.locationType === 'BIN').map(loc => {
+                        const util = loc.physicalCapacity ? (loc.usedCapacity || 0) / loc.physicalCapacity : 0;
                         let color = '#10b981'; // green
                         if (util > 0.8) color = '#f59e0b'; // amber
                         if (util >= 1) color = '#f43f5e'; // rose
                         
                         return (
-                          <div key={loc.id} style={{ padding: '8px', background: color, borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => setToast(`Opening bin ${loc.id}`)}>
+                          <div key={loc.id} style={{ padding: '8px', background: color, borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => setToast(`Opening bin ${loc.code}`)}>
                              <div style={{ color: '#fff', fontSize: '10px', fontWeight: 700 }}>{loc.name}</div>
                              <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '9px' }}>{(util*100).toFixed(0)}%</div>
                           </div>
@@ -55,10 +72,10 @@ export function WarehouseDigitalTwin({ setToast }) {
                      <span style={{ fontWeight: 700 }}>4.2°C</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                     {locations.filter(l => l.zone === 'ZONE-COLD-1').map(loc => {
-                        const util = loc.current / loc.capacity;
+                     {locations.filter(l => l.locationType === 'COLD_ROOM').map(loc => {
+                        const util = loc.physicalCapacity ? (loc.usedCapacity || 0) / loc.physicalCapacity : 0;
                         return (
-                          <div key={loc.id} style={{ padding: '8px', background: 'rgba(59,130,246,0.3)', border: '1px solid var(--blue)', borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => setToast(`Opening bin ${loc.id}`)}>
+                          <div key={loc.id} style={{ padding: '8px', background: 'rgba(59,130,246,0.3)', border: '1px solid var(--blue)', borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => setToast(`Opening bin ${loc.code}`)}>
                              <div style={{ color: '#fff', fontSize: '10px', fontWeight: 700 }}>{loc.name}</div>
                              <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '9px' }}>{(util*100).toFixed(0)}%</div>
                           </div>
@@ -71,10 +88,10 @@ export function WarehouseDigitalTwin({ setToast }) {
                <div style={{ position: 'absolute', bottom: '100px', left: '400px', width: '250px', height: '100px', background: 'rgba(244,63,94,0.05)', border: '2px dashed var(--rose)', borderRadius: '8px', padding: '12px' }}>
                   <div style={{ fontSize: '10px', color: 'var(--rose)', marginBottom: '8px', textTransform: 'uppercase' }}>Quarantine Area</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                     {locations.filter(l => l.type === 'QUARANTINE').map(loc => (
-                        <div key={loc.id} style={{ padding: '8px', background: 'rgba(244,63,94,0.2)', border: '1px solid var(--rose)', borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => setToast(`Opening bin ${loc.id}`)}>
+                     {locations.filter(l => l.locationType === 'QUARANTINE').map(loc => (
+                        <div key={loc.id} style={{ padding: '8px', background: 'rgba(244,63,94,0.2)', border: '1px solid var(--rose)', borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => setToast(`Opening bin ${loc.code}`)}>
                            <div style={{ color: '#fff', fontSize: '10px', fontWeight: 700 }}>{loc.name}</div>
-                           <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '9px' }}>{loc.current} units</div>
+                           <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '9px' }}>{loc.usedCapacity || 0} {loc.capacityUom}</div>
                         </div>
                      ))}
                   </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Truck, Map, AlertTriangle, Snowflake, Package, Clock, ShieldCheck, Zap, MoreHorizontal, User, Navigation, Activity } from 'lucide-react';
-import { db } from '../services/mockDb';
+const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
 import { ShipmentTracker } from './ShipmentTracker';
 import { Modal } from '../components/ui';
 

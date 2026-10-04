@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PackageSearch, Box, Truck, CheckSquare, ScanBarcode, ArrowRight } from 'lucide-react';
-import { db } from '../services/mockDb';
+const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
 
 export function LogisticsOperations({ setToast }) {
   const [activeTab, setActiveTab] = useState('PICK');

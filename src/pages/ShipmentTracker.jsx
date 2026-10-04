@@ -1,6 +1,6 @@
 import React from 'react';
 import { Package, MapPin, Snowflake, Thermometer, Clock, CheckCircle2, ShieldCheck, Map, Camera, PenTool, AlertTriangle } from 'lucide-react';
-import { db } from '../services/mockDb';
+const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
 
 export function ShipmentTracker({ shipmentId, onClose, setToast }) {
   const shipment = db.shipments?.find(s => s.id === shipmentId);
