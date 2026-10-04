@@ -4,15 +4,41 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Sparkles, BarChart3, AlertTriangle, TrendingDown, Clock3, ShieldAlert, CheckCircle2, Bot, BrainCircuit, Activity } from 'lucide-react';
 import { inventoryService } from '../services/inventoryService';
 
-const data = [
-  { name: 'Jan', value: 2.1 },
-  { name: 'Feb', value: 2.4 },
-  { name: 'Mar', value: 2.3 },
-  { name: 'Apr', value: 2.8 },
-  { name: 'May', value: 3.2 },
-  { name: 'Jun', value: 3.8 },
-  { name: 'Jul', value: 4.1 },
-];
+const mockData = {
+  '1M': [
+    { name: 'Week 1', value: 3.8 },
+    { name: 'Week 2', value: 3.9 },
+    { name: 'Week 3', value: 4.0 },
+    { name: 'Week 4', value: 4.1 },
+  ],
+  '3M': [
+    { name: 'May', value: 3.2 },
+    { name: 'Jun', value: 3.8 },
+    { name: 'Jul', value: 4.1 },
+  ],
+  '6M': [
+    { name: 'Feb', value: 2.4 },
+    { name: 'Mar', value: 2.3 },
+    { name: 'Apr', value: 2.8 },
+    { name: 'May', value: 3.2 },
+    { name: 'Jun', value: 3.8 },
+    { name: 'Jul', value: 4.1 },
+  ],
+  '1Y': [
+    { name: 'Aug', value: 1.8 },
+    { name: 'Sep', value: 1.9 },
+    { name: 'Oct', value: 2.0 },
+    { name: 'Nov', value: 2.2 },
+    { name: 'Dec', value: 2.1 },
+    { name: 'Jan', value: 2.1 },
+    { name: 'Feb', value: 2.4 },
+    { name: 'Mar', value: 2.3 },
+    { name: 'Apr', value: 2.8 },
+    { name: 'May', value: 3.2 },
+    { name: 'Jun', value: 3.8 },
+    { name: 'Jul', value: 4.1 },
+  ]
+};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -29,14 +55,25 @@ const itemVariants = {
 
 export function CommandCenter({ setActive, setToast }) {
   const [stats, setStats] = useState(null);
+  const [aiForecasts, setAiForecasts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiMode, setAiMode] = useState(false);
+  const [timeFilter, setTimeFilter] = useState('6M');
 
   useEffect(() => {
     async function loadData() {
-      const data = await inventoryService.getDashboardStats();
-      setStats(data);
-      setLoading(false);
+      try {
+        const [dashStats, aiData] = await Promise.all([
+           inventoryService.getDashboardStats(),
+           inventoryService.getAiForecast().catch(() => [])
+        ]);
+        setStats(dashStats);
+        setAiForecasts(aiData);
+      } catch (err) {
+        setToast('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, []);
@@ -152,14 +189,14 @@ export function CommandCenter({ setActive, setToast }) {
              </div>
              <div style={{ display: 'flex', gap: '8px', background: 'var(--bg)', padding: '4px', borderRadius: '8px', border: '1px solid var(--line)' }}>
                {['1M', '3M', '6M', '1Y'].map(t => (
-                 <button key={t} style={{ background: t === '6M' ? 'var(--brand)' : 'transparent', color: t === '6M' ? '#fff' : 'var(--muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>{t}</button>
+                 <button key={t} onClick={() => setTimeFilter(t)} style={{ background: t === timeFilter ? 'var(--brand)' : 'transparent', color: t === timeFilter ? '#fff' : 'var(--muted)', border: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>{t}</button>
                ))}
              </div>
            </div>
            
-           <div style={{ height: '300px', width: '100%' }}>
+            <div style={{ height: '300px', width: '100%' }}>
              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <AreaChart data={aiMode ? [...mockData[timeFilter], { name: 'Pred. 1', value: 4.4 }, { name: 'Pred. 2', value: 4.7 }] : mockData[timeFilter]} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#1bb4a2" stopOpacity={0.5}/>
@@ -186,19 +223,17 @@ export function CommandCenter({ setActive, setToast }) {
            <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '0 0 24px 0' }}>Requires executive authorization</p>
 
            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-              {[
-                { title: 'REVIEW EXPIRY', desc: 'Ceftriaxone 1g (Batch CEF)', time: '2h ago', color: 'var(--rose)' },
-                { title: 'APPROVE PURCHASE', desc: 'PO-2026-189 • NovaMed', time: '4h ago', color: 'var(--blue)' },
-                { title: 'INVESTIGATE', desc: 'Pharmacy count discrepancy', time: '1d ago', color: 'var(--amber)' },
-              ].map((act, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--bg)', borderRadius: '16px', borderLeft: `3px solid ${act.color}`, border: '1px solid var(--line)', borderLeftWidth: '3px', transition: 'all 0.2s', cursor: 'pointer' }} onMouseOver={(e)=>e.currentTarget.style.transform='translateX(4px)'} onMouseOut={(e)=>e.currentTarget.style.transform='translateX(0)'}>
+              {aiForecasts.length > 0 ? aiForecasts.map((f, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--bg)', borderRadius: '16px', borderLeft: `3px solid ${f.riskLevel === 'CRITICAL' ? 'var(--rose)' : 'var(--amber)'}`, border: '1px solid var(--line)', borderLeftWidth: '3px', transition: 'all 0.2s', cursor: 'pointer' }} onMouseOver={(e)=>e.currentTarget.style.transform='translateX(4px)'} onMouseOut={(e)=>e.currentTarget.style.transform='translateX(0)'}>
                    <div style={{ flex: 1 }}>
-                     <h4 style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text)', margin: '0 0 4px 0', letterSpacing: '1px' }}>{act.title}</h4>
-                     <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>{act.desc}</p>
+                     <h4 style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text)', margin: '0 0 4px 0', letterSpacing: '1px', textTransform: 'uppercase' }}>{f.riskLevel} RISK: {f.medicineName}</h4>
+                     <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>Stockout expected in {f.daysRemaining} days. Current stock: {f.currentStock}.</p>
                    </div>
-                   <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>{act.time}</span>
+                   <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>{f.estimatedStockoutDate}</span>
                 </div>
-              ))}
+              )) : (
+                <div style={{ textAlign: 'center', color: 'var(--muted)', padding: '20px', fontSize: '13px' }}>No critical AI risks detected.</div>
+              )}
            </div>
            <button style={{ width: '100%', padding: '14px', background: 'var(--brand)', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', marginTop: '16px', boxShadow: '0 4px 20px rgba(27,180,162,0.3)', transition: 'all 0.2s' }} onMouseOver={(e)=>e.currentTarget.style.transform='translateY(-2px)'} onMouseOut={(e)=>e.currentTarget.style.transform='translateY(0)'}>
              Resolve All Actions

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Edit, Trash2, TrendingUp, AlertTriangle, Boxes, Clock3 } from "lucide-react";
 import { inventoryService } from "../services/inventoryService";
+import { Medicine3DBox } from "../components/Medicine3DBox";
 
 export function MedicineDetail({ medicine, onBack }) {
   const [activeTab, setActiveTab] = useState("overview");
@@ -62,6 +63,16 @@ export function MedicineDetail({ medicine, onBack }) {
              <div style={{marginTop:10}}>
                 <label style={{fontSize:11, color:"var(--muted)"}}>Description</label>
                 <p style={{fontSize:13, margin:0}}>{medicine.description}</p>
+             </div>
+             
+             <div style={{marginTop:20}}>
+                <h4 style={{fontSize:12, color:"var(--muted)", marginBottom:10}}>3D Digital Twin Model</h4>
+                <Medicine3DBox 
+                  genericName={medicine.genericName}
+                  brandName={medicine.brandName}
+                  strength={medicine.strength}
+                  category={medicine.category}
+                />
              </div>
           </div>
           

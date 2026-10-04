@@ -3,6 +3,7 @@ import { Filter, Plus, RefreshCw, PackageSearch, Camera, Sparkles, Edit, Trash2 
 import { inventoryService } from "../services/inventoryService";
 import { Status, Modal, EmptyState } from "../components/ui";
 import { MedicineDetail } from "./MedicineDetail";
+import { CameraScanner } from "../components/CameraScanner";
 
 export function Inventory({ search, setToast }) {
   const [medicines, setMedicines] = useState([]);
@@ -15,7 +16,7 @@ export function Inventory({ search, setToast }) {
   const [selectedDetailMed, setSelectedDetailMed] = useState(null);
 
   // Vision scanner state
-  const [isScanning, setIsScanning] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [scannedData, setScannedData] = useState(null);
   
   const [isDirty, setIsDirty] = useState(false);
@@ -32,15 +33,19 @@ export function Inventory({ search, setToast }) {
   }
 
   const handleScan = () => {
-    setIsScanning(true);
-    setTimeout(() => {
-      setIsScanning(false);
-      setScannedData({ 
-        genericName: "Ciprofloxacin", brandName: "Cipro", 
-        strength: "500mg", category: "Antibiotic", 
-        manufacturer: "NovaMed" 
-      });
-    }, 2500);
+    setShowCamera(true);
+  }
+
+  const handleScanComplete = (data) => {
+    setShowCamera(false);
+    setScannedData({
+      genericName: data.name.split(' ')[0],
+      brandName: data.name,
+      strength: data.name.match(/\d+[a-zA-Z]+/)?.[0] || "",
+      category: "Antibiotic", // Mock category based on scan
+      manufacturer: data.manufacturer
+    });
+    setToast("AI Vision data extracted successfully");
   }
 
   const handleSave = async (e) => {
@@ -179,23 +184,16 @@ export function Inventory({ search, setToast }) {
 
     {/* ADD / EDIT MODAL */}
     {(showAdd || editingMed) && <Modal title={editingMed ? "Edit Medicine Master" : "Add New Medicine"} close={handleClose}>
-      {showAdd && !scannedData && !isScanning ? (
+      {showAdd && !scannedData ? (
         <div className="vision-prompt panel" style={{textAlign:"center", padding:20, background:"var(--surface-2)", marginBottom:20, border:"1px dashed var(--primary)"}}>
            <Sparkles size={20} color="var(--primary)" style={{marginBottom:10}}/>
            <h4>AI Vision Scanner</h4>
            <p style={{fontSize:11, color:"var(--muted)", margin:"5px 0 10px"}}>Hold the medicine bottle to the camera to auto-extract product data.</p>
            <button className="primary" onClick={handleScan}><Camera size={14}/> Start Camera</button>
         </div>
-      ) : isScanning ? (
-        <div className="vision-scan-active panel" style={{textAlign:"center", padding:20, background:"#071a1a", color:"#eaf8f6", marginBottom:20, position:"relative", overflow:"hidden"}}>
-           <div className="scanner-line"></div>
-           <Camera size={30} className="pulse" style={{marginBottom:10, color:"var(--primary)"}}/>
-           <h4>Analyzing Label...</h4>
-           <p style={{fontSize:11, color:"#8faca9", margin:"5px 0 0"}}>Extracting via Neural Engine.</p>
-        </div>
       ) : null}
 
-      <form id="medicineForm" className="form-grid" style={{opacity: isScanning ? 0.3 : 1, pointerEvents: isScanning ? "none" : "auto", gridTemplateColumns:"1fr 1fr", gap:15}} onChange={() => setIsDirty(true)} onSubmit={handleSave}>
+      <form id="medicineForm" className="form-grid" style={{gridTemplateColumns:"1fr 1fr", gap:15}} onChange={() => setIsDirty(true)} onSubmit={handleSave}>
         <label>Medicine Code<input name="code" defaultValue={editingMed?.code} placeholder="e.g. AMX500" required/></label>
         <label>Generic Name<input name="genericName" defaultValue={editingMed?.genericName || scannedData?.genericName} placeholder="e.g. Amoxicillin" required/></label>
         <label>Brand Name<input name="brandName" defaultValue={editingMed?.brandName || scannedData?.brandName} placeholder="e.g. Amoxil" required/></label>
@@ -229,5 +227,6 @@ export function Inventory({ search, setToast }) {
       </div>
       </form>
     </Modal>}
+    {showCamera && <CameraScanner onClose={() => setShowCamera(false)} onScanComplete={handleScanComplete} />}
   </div>;
 }

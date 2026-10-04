@@ -160,6 +160,11 @@ export const inventoryService = {
       console.error(e);
       return [];
     }
+  },
+
+  async getAiForecast() {
+    const res = await client.get('/dashboard/ai-forecast');
+    return res.data;
   }
 };
 

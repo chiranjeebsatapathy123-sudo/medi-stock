@@ -3,6 +3,7 @@ package com.medistock.backend.controller;
 import com.medistock.backend.repository.BatchRepository;
 import com.medistock.backend.repository.MedicineRepository;
 import com.medistock.backend.security.TenantContext;
+import com.medistock.backend.service.StockoutPredictionService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
@@ -14,10 +15,12 @@ public class DashboardController {
 
     private final MedicineRepository medicineRepository;
     private final BatchRepository batchRepository;
+    private final StockoutPredictionService stockoutPredictionService;
 
-    public DashboardController(MedicineRepository medicineRepository, BatchRepository batchRepository) {
+    public DashboardController(MedicineRepository medicineRepository, BatchRepository batchRepository, StockoutPredictionService stockoutPredictionService) {
         this.medicineRepository = medicineRepository;
         this.batchRepository = batchRepository;
+        this.stockoutPredictionService = stockoutPredictionService;
     }
 
     @GetMapping("/summary")
@@ -50,5 +53,13 @@ public class DashboardController {
         summary.put("expiredItems", 0);
         summary.put("recentMovements", Collections.emptyList());
         return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/ai-forecast")
+    public ResponseEntity<List<Map<String, Object>>> getAiForecast() {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+
+        return ResponseEntity.ok(stockoutPredictionService.calculateStockoutRisks(tenantId));
     }
 }

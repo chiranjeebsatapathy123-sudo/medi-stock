@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../services/apiClient';
+import { Mic, MicOff } from 'lucide-react';
 
 const CommandPalette = ({ isOpen, onClose }) => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
+    const [isListening, setIsListening] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -33,8 +35,6 @@ const CommandPalette = ({ isOpen, onClose }) => {
         const q = e.target.value;
         setQuery(q);
         if (q.length > 2) {
-            // In a real app we'd call the backend API search endpoint
-            // For now, simulate some local grouping logic
             const simulatedResults = [
                 { type: 'Medicines', label: 'Aspirin 500mg', path: '/inventory' },
                 { type: 'Actions', label: 'Receive New Stock', path: '/movements' },
@@ -45,6 +45,36 @@ const CommandPalette = ({ isOpen, onClose }) => {
         } else {
             setResults([]);
         }
+    };
+
+    const startListening = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('Speech recognition is not supported in this browser.');
+            return;
+        }
+        
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        
+        recognition.onstart = () => setIsListening(true);
+        recognition.onend = () => setIsListening(false);
+        
+        recognition.onresult = (event) => {
+            const transcript = Array.from(event.results)
+                .map(result => result[0].transcript)
+                .join('');
+            setQuery(transcript);
+            
+            // Auto-trigger search for final result
+            if (event.results[0].isFinal) {
+                handleSearch({ target: { value: transcript } });
+            }
+        };
+        
+        recognition.start();
     };
 
     if (!isOpen) return null;
@@ -59,9 +89,15 @@ const CommandPalette = ({ isOpen, onClose }) => {
                         autoFocus
                         value={query}
                         onChange={handleSearch}
-                        placeholder="Search medicines, batches, orders, or type a command..."
+                        placeholder={isListening ? "Listening..." : "Search medicines, batches, orders, or type a command..."}
                         className="flex-1 bg-transparent border-none text-white focus:outline-none"
                     />
+                    <button 
+                        onClick={startListening} 
+                        className={`mr-3 p-2 rounded-full transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                    >
+                        {isListening ? <Mic size={16} /> : <MicOff size={16} />}
+                    </button>
                     <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-xs px-2 py-1 bg-slate-800 rounded">ESC</button>
                 </div>
                 {results.length > 0 && (
