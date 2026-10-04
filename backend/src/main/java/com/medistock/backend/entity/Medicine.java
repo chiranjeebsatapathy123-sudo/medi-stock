@@ -42,6 +42,9 @@ public class Medicine {
     private ZonedDateTime createdAt;
     private ZonedDateTime updatedAt;
     
+    @org.hibernate.annotations.Formula("(SELECT COALESCE(SUM(b.current_quantity), 0) FROM batches b WHERE b.medicine_id = id AND b.status = 'ACTIVE')")
+    private Integer totalStock;
+    
     @PrePersist
     protected void onCreate() {
         createdAt = ZonedDateTime.now();

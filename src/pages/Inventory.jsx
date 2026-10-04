@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Filter, Plus, RefreshCw, PackageSearch, Camera, Sparkles, Edit, Trash2 } from "lucide-react";
+import { Filter, Plus, RefreshCw, PackageSearch, Camera, Sparkles, Edit, Trash2, AlertOctagon } from "lucide-react";
+import { motion } from "framer-motion";
 import { inventoryService } from "../services/inventoryService";
 import { Status, Modal, EmptyState } from "../components/ui";
 import { MedicineDetail } from "./MedicineDetail";
@@ -155,20 +156,30 @@ export function Inventory({ search, setToast }) {
         
         {loading ? <div style={{padding:60,textAlign:"center", color: 'var(--muted)'}}>Loading inventory master data...</div> : 
          filtered.length === 0 ? <EmptyState icon={PackageSearch} title="No medicines found" description="There are no medicines matching your current filters." actionText="Clear Filters" onAction={()=>setFilter("All")} /> :
-         filtered.map(m => (
-          <div className="data-row" key={m.id} style={{cursor: "pointer"}} onClick={(e) => {
+         filtered.map((m, index) => (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            whileHover={{ scale: 1.01, backgroundColor: 'var(--surface-hover)' }}
+            className="data-row" 
+            key={m.id} 
+            style={{cursor: "pointer", position: 'relative', overflow: 'hidden'}} 
+            onClick={(e) => {
              if (e.target.closest('button')) return; // ignore button clicks
              setSelectedDetailMed(m);
           }}>
+            {(m.totalStock || 0) === 0 && <div style={{position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', background: 'var(--rose)'}}></div>}
             <div className="med-cell">
               <div className="medicine-icon"><PackageSearch size={17}/></div>
               <div><b>{m.genericName} {m.strength}</b><span>{m.code} • {m.brandName}</span></div>
             </div>
             <span><b>{m.category}</b><small>{m.dosageForm}</small></span>
-            <span>
-              <b>{(m.totalStock || 0).toLocaleString()} {m.unit}s</b>
-              <small style={{color: (m.totalStock || 0) < m.safetyStock ? "var(--rose)" : "var(--muted)"}}>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <b style={{ color: (m.totalStock || 0) === 0 ? 'var(--rose)' : 'var(--text)' }}>{(m.totalStock || 0).toLocaleString()} {m.unit}s</b>
+              <small style={{color: (m.totalStock || 0) < m.safetyStock ? "var(--rose)" : "var(--muted)", display: 'flex', alignItems: 'center', gap: '4px'}}>
                 / {m.safetyStock} safety stock
+                {(m.totalStock || 0) === 0 && <AlertOctagon size={12} color="var(--rose)" />}
               </small>
             </span>
             <span>{m.manufacturer}</span>
@@ -177,7 +188,7 @@ export function Inventory({ search, setToast }) {
               <button className="icon-btn" onClick={(e)=>{ e.stopPropagation(); setEditingMed(m); }}><Edit size={15}/></button>
               <button className="icon-btn" onClick={(e)=>{ e.stopPropagation(); handleDelete(m.id); }}><Trash2 size={15} color="var(--rose)"/></button>
             </span>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
