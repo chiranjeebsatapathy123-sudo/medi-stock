@@ -1,51 +1,41 @@
-# MediStock
+# MediStock Pro
+**Intelligent Medical Inventory Management System**
 
-MediStock is a comprehensive, production-grade Healthcare Supply Intelligence and Pharmacy Operations platform. It integrates inventory management, predictive procurement, financial intelligence, and supply chain automation into a single cohesive system.
+MediStock Pro is a comprehensive, AI-powered medical inventory and supply chain management platform designed for enterprise healthcare organizations. 
 
-## 🚀 Features
-- **Intelligent Inventory & Cold-Chain Management**: Multi-location tracking, batch-level FEFO (First-Expire, First-Out) tracking, and temperature compliance.
-- **Predictive Decision Intelligence**: Real-time stockout risk prediction, automated replenishment, and anomaly detection.
-- **Advanced Pharmacy Operations**: Secure prescription dispensing, controlled medicine tracking, and patient verification.
-- **Intelligent Procurement**: Supplier performance tracking, automated PO generation, and streamlined Goods Receipt Notes (GRN).
-- **Financial Intelligence**: Dynamic inventory valuation (WAC, FIFO), cost analysis, and dead stock mitigation.
-- **Multi-Tenant Architecture**: Robust role-based access control (RBAC) and strict tenant isolation for enterprise-scale deployments.
+## Features
 
-## 🛠️ Technology Stack
-- **Frontend**: React, Vite, Tailwind CSS, Lucide Icons, Recharts
-- **Backend**: Java, Spring Boot, Spring Security, Hibernate (JPA)
-- **Database**: PostgreSQL (Neon Serverless)
-- **Migrations**: Flyway
+- **Control Tower & Command Center**: High-level dashboards summarizing real-time active alerts, operations, and insights.
+- **Inventory & Shelf Map**: Complete warehouse visualization, shelf mapping, and item-level tracking using First-Expired-First-Out (FEFO) logic.
+- **Batches & Expiry Management**: Keep track of upcoming expirations to minimize wastage and improve safety.
+- **Purchases & Suppliers**: Streamline your procurement workflows and manage supplier lead times and performances.
+- **Logistics & Facility Management**: Monitor active fleet shipments (Chain of Custody), cold chain compliance, and smart warehouse IoT events.
+- **Pharmacy Operations**: Specialized workflows for fulfilling orders, managing dispensing validation, and controlled substance tracking.
+- **AI & Predictive Intelligence**: Embedded machine learning capabilities for predicting stockout risks, calculating optimal reorder points, and interrogating your data using natural language (Evidence-Based Insights).
+- **Users & Roles**: Role-based Access Control (RBAC) supporting multiple tenants and permission levels to keep operations secure.
 
-## 📦 Getting Started
+## Architecture
 
-### Prerequisites
-- Node.js 18+
-- Java 17+
-- Maven
-- PostgreSQL
+- **Frontend**: React (Vite), featuring dynamic routing and dark mode support.
+- **Backend**: Spring Boot 3, providing a REST API and securing endpoints via JWT and stateless authentication.
+- **Database**: PostgreSQL 16+ via Flyway migrations ensuring full transactional integrity.
+- **Python ML Services**: Fast/Automated AI models running to provide real-time inference (e.g. `start_ml_service.bat`).
 
-### 1. Start the Frontend
-The frontend is a Vite + React application.
+## Quick Start
 
+### 1. Database
+Set up a PostgreSQL database named `medistock` and run the Spring Boot backend to automatically run the Flyway migrations (V1 to V13). Wait for `V4__seed_data.sql` to populate demo data.
+
+### 2. Backend
 ```bash
-# Install dependencies
-npm install
+cd backend
+mvn spring-boot:run
+```
 
-# Start development server
+### 3. Frontend
+```bash
+npm install
 npm run dev
 ```
 
-### 2. Start the Backend
-The backend is a Spring Boot application.
-
-```bash
-cd backend
-
-# Run the Spring Boot app (Flyway will automatically migrate the database)
-./mvnw spring-boot:run
-```
-
-The frontend will be available at `http://localhost:5173` and the backend at `http://localhost:8080`.
-
-## 🛡️ License
-Proprietary & Confidential.
+Visit `http://localhost:5173` and log in with the pre-filled demo credentials (`admin@medistock.com` / `admin123`).

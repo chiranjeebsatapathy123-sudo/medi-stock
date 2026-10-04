@@ -1,25 +1,39 @@
 import React, { useState } from 'react';
 import { PackageSearch, Box, Truck, CheckSquare, ScanBarcode, ArrowRight } from 'lucide-react';
-const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
+import { logisticsService } from '../services/logisticsService';
 
 export function LogisticsOperations({ setToast }) {
   const [activeTab, setActiveTab] = useState('PICK');
-  const [renderTrigger, setRenderTrigger] = useState(0);
-
-  const pendingShipments = db.shipments || [];
+  const [logisticsData, setLogisticsData] = useState({ shipments: [] });
   
-  const toPick = pendingShipments.filter(s => s.status === 'READY' || s.status === 'DRAFT');
+  const fetchOverview = async () => {
+    try {
+      const data = await logisticsService.getOverview();
+      setLogisticsData(data);
+    } catch (e) {
+      setToast("Failed to fetch logistics operations");
+    }
+  };
+
+  React.useEffect(() => {
+    fetchOverview();
+  }, []);
+
+  const pendingShipments = logisticsData.shipments || [];
+  
+  const toPick = pendingShipments.filter(s => s.status === 'READY' || s.status === 'DRAFT' || s.status === 'PENDING');
   const toPack = pendingShipments.filter(s => s.status === 'PICKED');
   const toDispatch = pendingShipments.filter(s => s.status === 'PACKED');
   const toReceive = pendingShipments.filter(s => s.status === 'IN_TRANSIT');
   const history = pendingShipments.filter(s => s.status === 'DELIVERED');
 
-  const advanceShipment = (id, newStatus, message) => {
-    const s = db.shipments.find(x => x.id === id);
-    if (s) {
-      s.status = newStatus;
-      setRenderTrigger(prev => prev + 1);
+  const advanceShipment = async (id, newStatus, message) => {
+    try {
+      await logisticsService.updateShipmentStatus(id, newStatus);
       setToast(message);
+      fetchOverview();
+    } catch (e) {
+      setToast("Failed to update status");
     }
   };
 
@@ -79,13 +93,13 @@ function ShipmentCard({ ship, action, onClick }) {
           <span style={{ fontSize: '10px', background: 'var(--bg)', border: '1px solid var(--line)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, color: 'var(--brand)' }}>{ship.priority}</span>
        </div>
        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', color: 'var(--text)' }}>
-          <div style={{ flex: 1, background: 'var(--bg)', padding: '8px', borderRadius: '8px' }}>{db.locations?.find(l=>l.id===ship.origin)?.name || ship.origin}</div>
+          <div style={{ flex: 1, background: 'var(--bg)', padding: '8px', borderRadius: '8px' }}>{ship.originId}</div>
           <ArrowRight size={14} color="var(--muted)"/>
-          <div style={{ flex: 1, background: 'var(--bg)', padding: '8px', borderRadius: '8px' }}>{db.locations?.find(l=>l.id===ship.destination)?.name || ship.destination}</div>
+          <div style={{ flex: 1, background: 'var(--bg)', padding: '8px', borderRadius: '8px' }}>{ship.destinationId}</div>
        </div>
        <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
-          Items: {ship.items.reduce((s,i)=>s+i.quantity, 0)} units
-          {ship.temperatureRequirement !== 'N/A' && <span style={{ color: 'var(--blue)', marginLeft: '8px' }}>• Cold Chain</span>}
+          Priority: {ship.priority}
+          {ship.temperatureMin !== null && <span style={{ color: 'var(--blue)', marginLeft: '8px' }}>• Cold Chain</span>}
        </div>
        <button className="primary" style={{ width: '100%', marginTop: 'auto' }} onClick={onClick}>{action}</button>
     </div>

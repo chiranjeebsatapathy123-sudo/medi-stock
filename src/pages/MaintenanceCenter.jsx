@@ -1,9 +1,17 @@
 import React from 'react';
 import { Wrench, CalendarClock, PenTool, CheckCircle2, AlertTriangle } from 'lucide-react';
-const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
+import { facilityService } from '../services/facilityService';
 
 export function MaintenanceCenter({ setToast }) {
-  const maintenance = db.maintenanceTasks || [];
+  const [maintenance, setMaintenance] = React.useState([]);
+
+  React.useEffect(() => {
+    async function fetchMaintenance() {
+      const data = await facilityService.getOverview();
+      setMaintenance(data.maintenanceTasks || []);
+    }
+    fetchMaintenance();
+  }, []);
 
   return (
     <div className="page fade-in">
@@ -31,7 +39,9 @@ export function MaintenanceCenter({ setToast }) {
              </tr>
            </thead>
            <tbody>
-             {maintenance.map(mnt => (
+             {maintenance.length === 0 ? (
+               <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>No active maintenance tasks.</td></tr>
+             ) : maintenance.map(mnt => (
                <tr key={mnt.id} style={{ borderBottom: '1px solid var(--line)' }}>
                  <td style={{ padding: '12px' }}>
                     <b style={{ color: 'var(--text)' }}>{mnt.id}</b>
@@ -40,11 +50,11 @@ export function MaintenanceCenter({ setToast }) {
                     {mnt.assetId}
                  </td>
                  <td style={{ padding: '12px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>{mnt.type}</div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>{mnt.taskType}</div>
                     <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{mnt.description}</div>
                  </td>
                  <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text)' }}>
-                    {new Date(mnt.dueDate).toLocaleDateString()}
+                    {mnt.scheduledDate ? new Date(mnt.scheduledDate).toLocaleDateString() : 'Unscheduled'}
                  </td>
                  <td style={{ padding: '12px' }}>
                     <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 8px', borderRadius: '4px', background: mnt.status==='OVERDUE'?'rgba(244,63,94,0.1)':'rgba(59,130,246,0.1)', color: mnt.status==='OVERDUE'?'var(--rose)':'var(--blue)' }}>

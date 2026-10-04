@@ -1,0 +1,3 @@
+ALTER TABLE facility_vision_events
+ADD COLUMN IF NOT EXISTS detection VARCHAR(255),
+ADD COLUMN IF NOT EXISTS expected VARCHAR(255);

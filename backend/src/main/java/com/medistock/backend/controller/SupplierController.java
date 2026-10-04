@@ -35,4 +35,21 @@ public class SupplierController {
         if (tenantId == null) return ResponseEntity.status(403).build();
         return ResponseEntity.ok(supplierService.createSupplier(supplier, tenantId));
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('SUPPLIER_MANAGE') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Supplier> updateSupplier(@PathVariable UUID id, @RequestBody Supplier supplier) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+        return ResponseEntity.ok(supplierService.updateSupplier(id, supplier, tenantId));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('SUPPLIER_MANAGE') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> deleteSupplier(@PathVariable UUID id) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+        supplierService.deleteSupplier(id, tenantId);
+        return ResponseEntity.ok().<Void>build();
+    }
 }

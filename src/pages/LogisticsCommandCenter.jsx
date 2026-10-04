@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Truck, Map, AlertTriangle, Snowflake, Package, Clock, ShieldCheck, Zap, MoreHorizontal, User, Navigation, Activity } from 'lucide-react';
-const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
 import { ShipmentTracker } from './ShipmentTracker';
 import { Modal } from '../components/ui';
+import { logisticsService } from '../services/logisticsService';
 
 export function LogisticsCommandCenter({ setActive, setToast }) {
   const [showRoutePlanner, setShowRoutePlanner] = useState(false);
@@ -12,12 +12,28 @@ export function LogisticsCommandCenter({ setActive, setToast }) {
   const [newShipmentForm, setNewShipmentForm] = useState({ destination: 'LOC-ICU', priority: 'NORMAL', items: 100 });
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [aiSuggestions, setAiSuggestions] = useState({ reroute: true, consolidate: true });
-  const [exceptions, setExceptions] = useState(db.exceptions || []);
+  
+  const [logisticsData, setLogisticsData] = useState({ shipments: [], vehicles: [], drivers: [], exceptions: [], chainOfCustody: [] });
+  const [loading, setLoading] = useState(true);
 
-  const shipments = db.shipments || [];
+  React.useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const data = await logisticsService.getOverview();
+      setLogisticsData(data);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  const shipments = logisticsData.shipments || [];
+  const exceptions = logisticsData.exceptions || [];
+  const drivers = logisticsData.drivers || [];
+  const vehicles = logisticsData.vehicles || [];
+  
   const inTransit = shipments.filter(s => s.status === 'IN_TRANSIT').length;
-  const delayed = exceptions.filter(e => e.type === 'DELAY' && e.status === 'OPEN').length;
-  const coldChainActive = shipments.filter(s => s.status === 'IN_TRANSIT' && s.temperatureRequirement !== 'N/A').length;
+  const delayed = exceptions.filter(e => e.exceptionType === 'DELAY' && e.resolved === false).length;
+  const coldChainActive = shipments.filter(s => s.status === 'IN_TRANSIT' && s.temperatureMin !== null).length;
 
   return (
     <div className="page fade-in">
@@ -71,8 +87,8 @@ export function LogisticsCommandCenter({ setActive, setToast }) {
                </thead>
                <tbody>
                  {shipments.map(ship => {
-                   const origin = db.locations.find(l => l.id === ship.origin)?.name || ship.origin;
-                   const dest = db.locations.find(l => l.id === ship.destination)?.name || ship.destination;
+                   const origin = ship.originId;
+                   const dest = ship.destinationId;
                    return (
                      <tr key={ship.id} style={{ borderBottom: '1px solid var(--line)', cursor: 'pointer' }} onClick={() => setSelectedShipment(ship.id)} className="hover-row">
                        <td style={{ padding: '12px' }}>
@@ -173,8 +189,8 @@ export function LogisticsCommandCenter({ setActive, setToast }) {
                  </tr>
                </thead>
                <tbody>
-                 {db.drivers?.map(drv => {
-                   const veh = db.vehicles?.find(v => v.id === drv.vehicleId);
+                 {drivers?.map(drv => {
+                   const veh = vehicles?.find(v => v.id === drv.vehicleId);
                    return (
                      <tr key={drv.id} style={{ borderBottom: '1px solid var(--line)' }}>
                        <td style={{ padding: '12px' }}>
@@ -291,17 +307,24 @@ export function LogisticsCommandCenter({ setActive, setToast }) {
                    <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>This shipment will automatically be tracked via IoT sensors.</p>
                 </div>
              </div>
-             <button className="primary hover-glow" style={{ marginTop: '8px', padding: '16px', fontSize: '15px', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }} onClick={() => { 
-                const newId = `SHIP-2026-00000${db.shipments.length + 1}`;
-                db.shipments.push({
-                   id: newId, origin: "LOC-CENTRAL", destination: newShipmentForm.destination, requestedBy: "USR-001",
-                   createdAt: new Date().toISOString(), expectedDelivery: new Date(Date.now() + 3600000).toISOString(),
-                   priority: newShipmentForm.priority, carrierId: null, driverId: null, vehicleId: null, temperatureRequirement: "2-8°C", status: "DRAFT",
-                   items: [{ medicineId: "MED-1044", batchId: "BAT-003", quantity: newShipmentForm.items, unit: "Tablet", weight: 1.0, volume: 0.05 }],
-                   trackingData: null, cost: null
-                });
-                setToast(`Secure Manifest generated. Shipment ${newId} queued in Drafts.`); 
-                setShowNewShipment(false); 
+             <button className="primary hover-glow" style={{ marginTop: '8px', padding: '16px', fontSize: '15px', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }} onClick={async () => { 
+                try {
+                  await logisticsService.createShipment({
+                    shipmentNumber: `SHIP-2026-${Math.floor(Math.random()*10000).toString().padStart(4, '0')}`,
+                    originId: 'LOC-CENTRAL',
+                    destinationId: newShipmentForm.destination,
+                    status: 'PENDING',
+                    priority: newShipmentForm.priority,
+                    temperatureMin: 2.0,
+                    temperatureMax: 8.0
+                  });
+                  setToast("Secure Manifest generated. Shipment queued in Drafts.");
+                  setShowNewShipment(false);
+                  const data = await logisticsService.getOverview();
+                  setLogisticsData(data);
+                } catch(e) {
+                  setToast("Failed to create shipment");
+                }
              }}><Package size={18}/> Generate Secure Manifest</button>
           </motion.div>
         </Modal>

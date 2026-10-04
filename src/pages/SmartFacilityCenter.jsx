@@ -1,19 +1,33 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Activity, ThermometerSnowflake, Camera, HardDrive, Wrench, AlertTriangle, CheckCircle2, Zap, Server } from 'lucide-react';
-const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
+import { facilityService } from '../services/facilityService';
 
-export function SmartFacilityCenter({ setActive, setToast }) {
+export function SmartFacilityCenter({ setToast }) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('OVERVIEW');
+  const [facilityData, setFacilityData] = useState({ edgeDevices: [], facilityIncidents: [], visionEvents: [], maintenanceTasks: [] });
+  const [loading, setLoading] = useState(true);
 
-  const devices = db.edgeDevices || [];
-  const incidents = db.facilityIncidents || [];
-  const visionEvents = db.visionEvents || [];
-  const maintenance = db.maintenanceTasks || [];
+  React.useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const data = await facilityService.getOverview();
+      setFacilityData(data);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
 
-  const onlineDevices = devices.filter(d => d.status === 'ONLINE').length;
-  const criticalIncidents = incidents.filter(i => i.severity === 'HIGH' && i.status === 'OPEN').length;
-  const pendingVision = visionEvents.filter(v => v.status === 'NEEDS_REVIEW').length;
+  const devices = facilityData.edgeDevices || [];
+  const incidents = facilityData.facilityIncidents || [];
+  const visionEvents = facilityData.visionEvents || [];
+  const maintenance = facilityData.maintenanceTasks || [];
+
+  const onlineDevices = devices.filter(d => d.status === 'ONLINE' || d.status === 'ACTIVE').length;
+  const criticalIncidents = incidents.filter(i => i.severity === 'HIGH' && (i.status === 'OPEN' || i.resolved === false)).length;
+  const pendingVision = visionEvents.filter(v => v.status === 'NEEDS_REVIEW' || v.resolved === false).length;
   const overdueMaintenance = maintenance.filter(m => m.status === 'OVERDUE').length;
 
   const healthScore = Math.max(0, 100 - (criticalIncidents * 10) - (overdueMaintenance * 5) - (pendingVision * 2));
@@ -27,8 +41,8 @@ export function SmartFacilityCenter({ setActive, setToast }) {
           <p>IoT, Edge AI, Environmental Health & Capacity</p>
         </div>
         <div className="heading-actions">
-           <button className="secondary font-bold" onClick={() => setActive('Vision Review')}><Camera size={16}/> Vision Queue ({pendingVision})</button>
-           <button className="primary font-bold" onClick={() => setActive('Warehouse Map')}><Server size={16}/> Digital Twin</button>
+           <button className="secondary font-bold" onClick={() => navigate('/vision-queue')}><Camera size={16}/> Vision Queue ({pendingVision})</button>
+           <button className="primary font-bold" onClick={() => navigate('/digital-twin')}><Server size={16}/> Digital Twin</button>
         </div>
       </div>
 
@@ -74,13 +88,12 @@ export function SmartFacilityCenter({ setActive, setToast }) {
                    <tr key={inc.id} style={{ borderBottom: '1px solid var(--line)' }}>
                      <td style={{ padding: '12px' }}>
                         <b style={{ color: 'var(--text)' }}>{inc.id}</b>
-                        <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{new Date(inc.start).toLocaleTimeString()}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{inc.reportedAt ? new Date(inc.reportedAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</div>
                      </td>
                      <td style={{ padding: '12px' }}>
-                        <div style={{ fontSize: '13px', color: 'var(--text)' }}>{inc.location}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{inc.sensorId}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{inc.locationId}</div>
                      </td>
-                     <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text)' }}>{inc.condition}</td>
+                     <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text)' }}>{inc.incidentType || inc.condition}</td>
                      <td style={{ padding: '12px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 8px', borderRadius: '4px', background: inc.severity==='HIGH'?'rgba(244,63,94,0.1)':'rgba(245,158,11,0.1)', color: inc.severity==='HIGH'?'var(--rose)':'var(--amber)' }}>
                           {inc.severity}

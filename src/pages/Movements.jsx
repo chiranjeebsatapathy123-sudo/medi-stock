@@ -83,7 +83,7 @@ export function Movements({ setToast }) {
               <div className={`activity-icon ${m.quantity > 0 ? 'in' : 'out'}`} style={{background: m.quantity > 0 ? "var(--green-soft)" : "var(--rose-soft)", color: m.quantity > 0 ? "var(--green)" : "var(--rose)"}}>
                  {m.quantity > 0 ? <ArrowDownRight size={17}/> : <ArrowUpRight size={17}/>}
               </div>
-              <div><b>{Math.abs(m.quantity)} {med?.unit || 'units'} {med?.genericName || m.medicineName}</b><span>Batch: {m.batchNumber || m.batchId}</span></div>
+              <div><b>{Math.abs(m.quantity)} {med?.unit || 'units'} {med?.genericName || m.medicine?.genericName || m.medicineName}</b><span>Batch: {m.batch?.batchNumber || m.batchNumber || m.batchId}</span></div>
             </div>
             
             <span><b>{m.type.replace("_", " ")}</b><small>{new Date(m.timestamp).toLocaleString()}</small></span>

@@ -74,7 +74,7 @@ export function Dashboard({ setActive, setToast }) {
               <div className={`activity-icon ${m.type==="PURCHASE_RECEIVED"?"in":"out"}`}>
                 {m.type==="PURCHASE_RECEIVED"?<ArrowDownRight size={16}/>:<ArrowUpRight size={16}/>}
               </div>
-              <div><b>{m.type.replace("_", " ")}</b><p>{Math.abs(m.quantity)} units of {m.medicineName}</p></div>
+              <div><b>{m.type.replace("_", " ")}</b><p>{Math.abs(m.quantity)} units of {m.medicine?.genericName || m.medicineName}</p></div>
               <time>{new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</time>
             </div>
           })}
@@ -90,7 +90,7 @@ export function Dashboard({ setActive, setToast }) {
              const days = Math.ceil((new Date(b.expiryDate) - new Date()) / (1000*60*60*24));
              return <div className="table-row" key={b.id}>
                <div className="medicine-icon"><PackageSearch size={17}/></div>
-               <div className="row-main"><b>{b.medicineName}</b><span>{b.batchNumber} • {b.currentQty} units</span></div>
+               <div className="row-main"><b>{b.medicine?.genericName || b.medicineName}</b><span>{b.batchNumber} • {b.currentQuantity || b.currentQty} units</span></div>
                <div className="expiry-days">{days} days</div>
              </div>
           }) : <div style={{padding:20, color:"var(--muted)", textAlign:"center"}}>No batches expiring soon.</div>}

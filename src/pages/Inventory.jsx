@@ -58,7 +58,7 @@ export function Inventory({ search, setToast }) {
 
     try {
       if (editingMed) {
-        // Mock update for now
+        await inventoryService.updateMedicine(editingMed.id, data);
       } else {
         await inventoryService.createMedicine(data);
       }
@@ -78,16 +78,29 @@ export function Inventory({ search, setToast }) {
     setEditingMed(null);
     setScannedData(null);
     setIsDirty(false);
+  }
+
+  const handleDelete = async (id) => {
+    if (confirm("Are you sure you want to delete this medicine?")) {
+      try {
+        await inventoryService.deleteMedicine(id);
+        setToast("Medicine deleted successfully");
+        loadMeds();
+      } catch (err) {
+        setToast("Failed to delete medicine");
+      }
+    }
   };
 
   const filtered = useMemo(() => {
     return medicines.filter(m => {
       const matchSearch = `${m.genericName} ${m.brandName} ${m.code} ${m.category}`.toLowerCase().includes(search.toLowerCase());
       if (!matchSearch) return false;
+      const stock = m.totalStock || 0;
       if (filter === "All") return true;
-      if (filter === "Healthy") return m.totalStock >= m.safetyStock && m.status === "ACTIVE";
-      if (filter === "Low stock") return m.totalStock < m.safetyStock && m.totalStock > 0 && m.status === "ACTIVE";
-      if (filter === "Out of stock") return m.totalStock === 0 && m.status === "ACTIVE";
+      if (filter === "Healthy") return stock >= m.safetyStock && m.status === "ACTIVE";
+      if (filter === "Low stock") return stock < m.safetyStock && stock > 0 && m.status === "ACTIVE";
+      if (filter === "Out of stock") return stock === 0 && m.status === "ACTIVE";
       if (filter === "Archived") return m.status === "INACTIVE";
       return true;
     });
@@ -113,9 +126,9 @@ export function Inventory({ search, setToast }) {
             {x}
             <span>{
               x==="All" ? medicines.length :
-              x==="Healthy" ? medicines.filter(m=>m.totalStock >= m.safetyStock && m.status==="ACTIVE").length :
-              x==="Low stock" ? medicines.filter(m=>m.totalStock > 0 && m.totalStock < m.safetyStock && m.status==="ACTIVE").length :
-              x==="Out of stock" ? medicines.filter(m=>m.totalStock === 0 && m.status==="ACTIVE").length :
+              x==="Healthy" ? medicines.filter(m=>(m.totalStock || 0) >= m.safetyStock && m.status==="ACTIVE").length :
+              x==="Low stock" ? medicines.filter(m=>(m.totalStock || 0) > 0 && (m.totalStock || 0) < m.safetyStock && m.status==="ACTIVE").length :
+              x==="Out of stock" ? medicines.filter(m=>(m.totalStock || 0) === 0 && m.status==="ACTIVE").length :
               medicines.filter(m=>m.status==="INACTIVE").length
             }</span>
           </button>
@@ -148,16 +161,16 @@ export function Inventory({ search, setToast }) {
             </div>
             <span><b>{m.category}</b><small>{m.dosageForm}</small></span>
             <span>
-              <b>{m.totalStock.toLocaleString()} {m.unit}s</b>
-              <small style={{color: m.totalStock < m.safetyStock ? "var(--rose)" : "var(--muted)"}}>
+              <b>{(m.totalStock || 0).toLocaleString()} {m.unit}s</b>
+              <small style={{color: (m.totalStock || 0) < m.safetyStock ? "var(--rose)" : "var(--muted)"}}>
                 / {m.safetyStock} safety stock
               </small>
             </span>
             <span>{m.manufacturer}</span>
-            <span><Status value={m.status === "INACTIVE" ? "Archived" : m.totalStock === 0 ? "Out of stock" : m.totalStock < m.safetyStock ? "Low stock" : "Healthy"}/></span>
+            <span><Status value={m.status === "INACTIVE" ? "Archived" : (m.totalStock || 0) === 0 ? "Out of stock" : (m.totalStock || 0) < m.safetyStock ? "Low stock" : "Healthy"}/></span>
             <span style={{display:"flex", gap:10}}>
-              <button className="icon-btn" onClick={()=>setEditingMed(m)}><Edit size={15}/></button>
-              <button className="icon-btn"><Trash2 size={15} color="var(--rose)"/></button>
+              <button className="icon-btn" onClick={(e)=>{ e.stopPropagation(); setEditingMed(m); }}><Edit size={15}/></button>
+              <button className="icon-btn" onClick={(e)=>{ e.stopPropagation(); handleDelete(m.id); }}><Trash2 size={15} color="var(--rose)"/></button>
             </span>
           </div>
         ))}
@@ -200,6 +213,12 @@ export function Inventory({ search, setToast }) {
         </label>
         <label>Manufacturer<input name="manufacturer" defaultValue={editingMed?.manufacturer || scannedData?.manufacturer}/></label>
         <label>Unit of Measure<select name="unit" defaultValue={editingMed?.unit}><option>Tablet</option><option>Capsule</option><option>Vial</option></select></label>
+        
+        <label>Storage Requirements<input name="storageRequirement" defaultValue={editingMed?.storageRequirement} placeholder="e.g. 2-8°C, Protect from light"/></label>
+        
+        <label style={{gridColumn: "1 / -1"}}>Description
+          <textarea name="description" rows="3" defaultValue={editingMed?.description} placeholder="Enter medicine description, active ingredients, and indications..." style={{width:"100%", padding:"10px", borderRadius:"6px", border:"1px solid var(--line)", background:"var(--bg)", color:"var(--text)"}}></textarea>
+        </label>
         
         <label>Safety Stock<input name="safetyStock" type="number" defaultValue={editingMed?.safetyStock} placeholder="100"/></label>
         <label>Reorder Level<input name="reorderLevel" type="number" defaultValue={editingMed?.reorderLevel} placeholder="200"/></label>

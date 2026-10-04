@@ -48,4 +48,41 @@ public class MedicineController {
         Medicine saved = medicineRepository.save(medicine);
         return ResponseEntity.ok(saved);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Medicine> updateMedicine(@PathVariable UUID id, @RequestBody Medicine medicineDetails) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+
+        return medicineRepository.findByIdAndOrganizationId(id, tenantId)
+                .map(existingMedicine -> {
+                    existingMedicine.setMedicineCode(medicineDetails.getMedicineCode());
+                    existingMedicine.setGenericName(medicineDetails.getGenericName());
+                    existingMedicine.setBrandName(medicineDetails.getBrandName());
+                    existingMedicine.setStrength(medicineDetails.getStrength());
+                    existingMedicine.setCategory(medicineDetails.getCategory());
+                    existingMedicine.setDosageForm(medicineDetails.getDosageForm());
+                    existingMedicine.setManufacturer(medicineDetails.getManufacturer());
+                    existingMedicine.setUnit(medicineDetails.getUnit());
+                    existingMedicine.setSafetyStock(medicineDetails.getSafetyStock());
+                    existingMedicine.setReorderLevel(medicineDetails.getReorderLevel());
+                    existingMedicine.setDescription(medicineDetails.getDescription());
+                    existingMedicine.setStorageRequirement(medicineDetails.getStorageRequirement());
+                    return ResponseEntity.ok(medicineRepository.save(existingMedicine));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteMedicine(@PathVariable UUID id) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+
+        return medicineRepository.findByIdAndOrganizationId(id, tenantId)
+                .map(medicine -> {
+                    medicineRepository.delete(medicine);
+                    return ResponseEntity.ok().<Void>build();
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 }

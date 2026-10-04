@@ -32,14 +32,13 @@ client.interceptors.response.use(
     // Global error handling
     if (error.response) {
       const { status } = error.response;
-      if (status === 401) {
-        // Unauthorized - trigger logout or token refresh logic
+      if (status === 401 || status === 403) {
+        // Unauthorized or Forbidden - trigger logout
         localStorage.removeItem('medistock_token');
-        // If we implement refresh tokens, we do it here instead of just redirecting
         window.dispatchEvent(new CustomEvent('auth:unauthorized'));
-      } else if (status === 403) {
-        // Forbidden
-        console.error('Permission denied');
+        if (status === 403) {
+          console.error('Permission denied or token missing');
+        }
       }
     }
     

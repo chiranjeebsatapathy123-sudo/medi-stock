@@ -1,20 +1,34 @@
 import React from 'react';
 import { Package, MapPin, Snowflake, Thermometer, Clock, CheckCircle2, ShieldCheck, Map, Camera, PenTool, AlertTriangle } from 'lucide-react';
-const db = { visionEvents: [], edgeDevices: [], facilityIncidents: [], maintenanceTasks: [], shipments: [], locations: [], chainOfCustody: [], exceptions: [], proofOfDelivery: [], drivers: [], vehicles: [] };
+import { logisticsService } from '../services/logisticsService';
 
 export function ShipmentTracker({ shipmentId, onClose, setToast }) {
-  const shipment = db.shipments?.find(s => s.id === shipmentId);
+  const [logisticsData, setLogisticsData] = React.useState(null);
+
+  React.useEffect(() => {
+    async function fetchData() {
+      const data = await logisticsService.getOverview();
+      setLogisticsData(data);
+    }
+    fetchData();
+  }, []);
+
+  if (!logisticsData) {
+    return <div className="page" style={{ padding: '40px', textAlign: 'center' }}>Loading tracking data...</div>;
+  }
+
+  const shipment = logisticsData.shipments?.find(s => s.id === shipmentId);
   
   if (!shipment) {
     return <div className="page" style={{ padding: '40px', textAlign: 'center' }}>Shipment not found.</div>;
   }
 
-  const origin = db.locations?.find(l => l.id === shipment.origin)?.name || shipment.origin;
-  const dest = db.locations?.find(l => l.id === shipment.destination)?.name || shipment.destination;
+  const origin = shipment.originId;
+  const dest = shipment.destinationId;
   
-  const cocEvents = db.chainOfCustody?.filter(c => c.shipmentId === shipmentId).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)) || [];
-  const exceptions = db.exceptions?.filter(e => e.shipmentId === shipmentId) || [];
-  const pod = db.proofOfDelivery?.find(p => p.shipmentId === shipmentId);
+  const cocEvents = logisticsData.chainOfCustody?.filter(c => c.shipmentId === shipmentId).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)) || [];
+  const exceptions = logisticsData.exceptions?.filter(e => e.shipmentId === shipmentId) || [];
+  const pod = logisticsData.proofOfDelivery?.find(p => p.shipmentId === shipmentId);
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 100, display: 'flex', justifyContent: 'flex-end' }}>

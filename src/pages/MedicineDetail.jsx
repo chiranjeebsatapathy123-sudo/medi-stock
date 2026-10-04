@@ -57,7 +57,7 @@ export function MedicineDetail({ medicine, onBack }) {
                 <div><label style={{fontSize:11, color:"var(--muted)"}}>Category</label><div style={{fontWeight:600}}>{medicine.category}</div></div>
                 <div><label style={{fontSize:11, color:"var(--muted)"}}>Dosage Form</label><div style={{fontWeight:600}}>{medicine.dosageForm}</div></div>
                 <div><label style={{fontSize:11, color:"var(--muted)"}}>Unit</label><div style={{fontWeight:600}}>{medicine.unit}</div></div>
-                <div><label style={{fontSize:11, color:"var(--muted)"}}>Storage</label><div style={{fontWeight:600}}>{medicine.storageRequirements}</div></div>
+                <div><label style={{fontSize:11, color:"var(--muted)"}}>Storage</label><div style={{fontWeight:600}}>{medicine.storageRequirement}</div></div>
              </div>
              <div style={{marginTop:10}}>
                 <label style={{fontSize:11, color:"var(--muted)"}}>Description</label>
@@ -91,7 +91,7 @@ export function MedicineDetail({ medicine, onBack }) {
                 <div className="data-row" key={b.id}>
                    <b>{b.batchNumber}</b>
                    <span>{b.location?.name || b.locationId || "Unknown"}</span>
-                   <span><b>{b.currentQty}</b></span>
+                   <span><b>{b.currentQuantity}</b></span>
                    <span>{new Date(b.expiryDate).toLocaleDateString()}</span>
                    <span><span className={`status ${b.status==="ACTIVE"?"healthy":"medium-risk"}`}>{b.status}</span></span>
                 </div>

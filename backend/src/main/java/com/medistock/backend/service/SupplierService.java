@@ -28,4 +28,25 @@ public class SupplierService {
         }
         return supplierRepository.save(supplier);
     }
+
+    @Transactional
+    public Supplier updateSupplier(UUID id, Supplier supplierDetails, UUID orgId) {
+        return supplierRepository.findById(id).map(existing -> {
+            if (!existing.getOrganizationId().equals(orgId)) throw new RuntimeException("Unauthorized");
+            existing.setName(supplierDetails.getName());
+            existing.setEmail(supplierDetails.getEmail());
+            existing.setContactPerson(supplierDetails.getContactPerson());
+            existing.setLeadTimeDays(supplierDetails.getLeadTimeDays());
+            return supplierRepository.save(existing);
+        }).orElseThrow(() -> new RuntimeException("Supplier not found"));
+    }
+
+    @Transactional
+    public void deleteSupplier(UUID id, UUID orgId) {
+        supplierRepository.findById(id).ifPresent(existing -> {
+            if (existing.getOrganizationId().equals(orgId)) {
+                supplierRepository.delete(existing);
+            }
+        });
+    }
 }

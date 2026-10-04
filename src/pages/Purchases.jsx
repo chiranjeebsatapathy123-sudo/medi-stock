@@ -1,13 +1,18 @@
 import React, { useState } from "react";
 import { Plus, PackageCheck, ScanLine, ShoppingCart, Truck, ChevronRight } from "lucide-react";
 import { useApi } from "../hooks/useApi";
+import client from "../api/client";
 import { EmptyState, Modal } from "../components/ui";
 
 export function Purchases({ setToast }) {
   const { data: purchaseOrders, loading, refetch } = useApi("/procurement/purchase-orders");
+  const { data: suppliers } = useApi("/suppliers");
+  const { data: medicines } = useApi("/medicines");
   const [showReceiving, setShowReceiving] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   const [activeTab, setActiveTab] = useState("All");
   const [grnForm, setGrnForm] = useState({ poId: "", batch: "", expiry: "", quantity: "" });
+  const [poForm, setPoForm] = useState({ poNumber: "PO-" + Date.now(), supplierId: "", items: [{ medicineId: "", quantity: 1, unitPrice: 0 }] });
 
   const handleReceiveGRN = async () => {
     if (!grnForm.poId) return setToast("Select a PO first.");
@@ -26,12 +31,8 @@ export function Purchases({ setToast }) {
     };
 
     try {
-      const res = await fetch(`/api/procurement/purchase-orders/${grnForm.poId}/receive`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
+      const res = await client.post(`/procurement/purchase-orders/${grnForm.poId}/receive`, payload);
+      if (res.status === 200 || res.status === 201) {
         setToast("GRN Received and Inventory Updated.");
         setShowReceiving(false);
         setGrnForm({ poId: "", batch: "", expiry: "", quantity: "" });
@@ -41,6 +42,43 @@ export function Purchases({ setToast }) {
       }
     } catch (e) {
       setToast("Error receiving GRN.");
+    }
+  };
+
+  const handleCreatePO = async (e) => {
+    e.preventDefault();
+    if (!poForm.supplierId) return setToast("Select a supplier.");
+    if (poForm.items.length === 0 || !poForm.items[0].medicineId) return setToast("Add at least one item.");
+
+    let total = 0;
+    const payload = {
+      poNumber: poForm.poNumber,
+      supplier: { id: poForm.supplierId },
+      items: poForm.items.map(item => {
+        total += (item.quantity * item.unitPrice);
+        return {
+          medicine: { id: item.medicineId },
+          quantity: parseInt(item.quantity) || 1,
+          unitPrice: parseFloat(item.unitPrice) || 0,
+          totalPrice: (item.quantity * item.unitPrice)
+        };
+      }),
+      total: total,
+      subtotal: total
+    };
+
+    try {
+      const res = await client.post('/procurement/purchase-orders', payload);
+      if (res.status === 200 || res.status === 201) {
+        setToast("Purchase Order created successfully.");
+        setShowCreate(false);
+        setPoForm({ poNumber: "PO-" + Date.now(), supplierId: "", items: [{ medicineId: "", quantity: 1, unitPrice: 0 }] });
+        refetch();
+      } else {
+        setToast("Failed to create PO.");
+      }
+    } catch (e) {
+      setToast("Error creating PO.");
     }
   };
 
@@ -66,7 +104,7 @@ export function Purchases({ setToast }) {
       </div>
       <div className="heading-actions flex gap-2">
         <button className="secondary" onClick={() => setShowReceiving(true)}><PackageCheck size={16}/> Receive GRN</button>
-        <button className="primary" onClick={() => setToast("Create PO feature opens.")}><Plus size={16}/> New PO</button>
+        <button className="primary" onClick={() => setShowCreate(true)}><Plus size={16}/> New PO</button>
       </div>
     </div>
 
@@ -115,14 +153,8 @@ export function Purchases({ setToast }) {
                 {(po.status === "DRAFT" || po.status === "PENDING_APPROVAL") && (
                   <button className="secondary" onClick={async () => {
                      try {
-                       const res = await fetch(`/api/procurement/purchase-orders/${po.id}/approve`, {
-                         method: 'POST',
-                         headers: {
-                           'Content-Type': 'application/json',
-                           'Authorization': `Bearer ${localStorage.getItem('token')}`
-                         }
-                       });
-                       if(res.ok) {
+                       const res = await client.post(`/procurement/purchase-orders/${po.id}/approve`, {});
+                       if(res.status === 200) {
                          setToast("PO Approved successfully.");
                          refetch();
                        } else {
@@ -180,6 +212,58 @@ export function Purchases({ setToast }) {
           <button className="secondary" onClick={() => setShowReceiving(false)}>Cancel</button>
           <button className="primary" onClick={handleReceiveGRN}>Confirm & Receive into Inventory</button>
         </div>
+      </Modal>
+    )}
+
+    {showCreate && (
+      <Modal title="Create Purchase Order" close={() => setShowCreate(false)}>
+        <form className="form-grid" onSubmit={handleCreatePO}>
+          <label>PO Number
+            <input type="text" value={poForm.poNumber} onChange={e=>setPoForm({...poForm, poNumber: e.target.value})} required/>
+          </label>
+          <label>Supplier
+            <select value={poForm.supplierId} onChange={e=>setPoForm({...poForm, supplierId: e.target.value})} required>
+               <option value="">Select Supplier...</option>
+               {(suppliers || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </label>
+          
+          <div style={{gridColumn: "1 / -1", borderTop: "1px solid var(--line)", paddingTop: 15, marginTop: 15}}>
+             <h4 style={{marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>Order Items 
+               <button type="button" className="link-btn flex items-center gap-1" onClick={() => setPoForm({...poForm, items: [...poForm.items, { medicineId: "", quantity: 1, unitPrice: 0 }]})}>
+                 <Plus size={14}/> Add Item
+               </button>
+             </h4>
+             
+             {poForm.items.map((item, index) => (
+               <div key={index} style={{display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10, marginBottom: 10}}>
+                 <select value={item.medicineId} onChange={e => {
+                   const newItems = [...poForm.items];
+                   newItems[index].medicineId = e.target.value;
+                   setPoForm({...poForm, items: newItems});
+                 }} required>
+                   <option value="">Select Medicine</option>
+                   {(medicines || []).map(m => <option key={m.id} value={m.id}>{m.genericName} ({m.code})</option>)}
+                 </select>
+                 <input type="number" placeholder="Qty" value={item.quantity} onChange={e => {
+                   const newItems = [...poForm.items];
+                   newItems[index].quantity = e.target.value;
+                   setPoForm({...poForm, items: newItems});
+                 }} required min="1"/>
+                 <input type="number" step="0.01" placeholder="Unit Price" value={item.unitPrice} onChange={e => {
+                   const newItems = [...poForm.items];
+                   newItems[index].unitPrice = e.target.value;
+                   setPoForm({...poForm, items: newItems});
+                 }} required min="0"/>
+               </div>
+             ))}
+          </div>
+
+          <div className="modal-actions mt-6 flex justify-between" style={{gridColumn: "1 / -1"}}>
+            <button type="button" className="secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+            <button type="submit" className="primary">Create PO</button>
+          </div>
+        </form>
       </Modal>
     )}
   </div>;

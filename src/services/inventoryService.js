@@ -21,6 +21,26 @@ export const inventoryService = {
     }
   },
 
+  async updateMedicine(id, medicine) {
+    try {
+      const response = await client.put(`/medicines/${id}`, medicine);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  },
+
+  async deleteMedicine(id) {
+    try {
+      const response = await client.delete(`/medicines/${id}`);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  },
+
   async getBatches(medicineId = null) {
     try {
       const url = medicineId ? `/batches?medicineId=${medicineId}` : '/batches';
@@ -29,6 +49,36 @@ export const inventoryService = {
     } catch (e) {
       console.error(e);
       return [];
+    }
+  },
+
+  async createBatch(batch) {
+    try {
+      const response = await client.post('/batches', batch);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  },
+
+  async updateBatch(id, batch) {
+    try {
+      const response = await client.put(`/batches/${id}`, batch);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  },
+
+  async deleteBatch(id) {
+    try {
+      const response = await client.delete(`/batches/${id}`);
+      return response.data;
+    } catch (e) {
+      console.error(e);
+      throw e;
     }
   },
 

@@ -40,87 +40,13 @@ import { ControlTower } from "./pages/ControlTower";
 import { PharmacyWorkspace } from "./pages/PharmacyWorkspace";
 import { IntelligenceCenter } from "./pages/IntelligenceCenter";
 import { WarehouseScanner } from "./pages/WarehouseScanner";
+import { Patients } from "./pages/Patients";
+import { Invoices } from "./pages/Invoices";
+import { LandingPage } from "./pages/LandingPage";
+import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
 
-const medicines = [
-  { id: "MED-1042", name: "Amoxicillin 500mg", category: "Antibiotic", batch: "AMX-24F8", stock: 820, reorder: 300, expiry: "2027-04-18", supplier: "Cureline Pharma", status: "Healthy", price: 4.8 },
-  { id: "MED-1043", name: "Paracetamol 500mg", category: "Analgesic", batch: "PCM-25A1", stock: 1460, reorder: 500, expiry: "2027-01-22", supplier: "MedCore Labs", status: "Healthy", price: 1.9 },
-  { id: "MED-1044", name: "Azithromycin 250mg", category: "Antibiotic", batch: "AZI-24K3", stock: 182, reorder: 250, expiry: "2026-11-14", supplier: "NovaMed", status: "Low stock", price: 8.2 },
-  { id: "MED-1045", name: "Insulin Glargine", category: "Diabetes", batch: "INS-26B4", stock: 74, reorder: 100, expiry: "2026-10-26", supplier: "BioNova", status: "Expiring", price: 29.5 },
-  { id: "MED-1046", name: "Atorvastatin 20mg", category: "Cardiology", batch: "ATR-25C7", stock: 512, reorder: 200, expiry: "2027-08-02", supplier: "MedCore Labs", status: "Healthy", price: 3.4 },
-  { id: "MED-1047", name: "Omeprazole 20mg", category: "Gastro", batch: "OMP-25D2", stock: 96, reorder: 180, expiry: "2026-12-08", supplier: "Cureline Pharma", status: "Low stock", price: 2.7 },
-  { id: "MED-1048", name: "Ceftriaxone 1g", category: "Antibiotic", batch: "CEF-26A5", stock: 48, reorder: 80, expiry: "2026-10-19", supplier: "NovaMed", status: "Expiring", price: 12.4 },
-  { id: "MED-1049", name: "Metformin 500mg", category: "Diabetes", batch: "MET-25H6", stock: 930, reorder: 400, expiry: "2027-06-11", supplier: "BioNova", status: "Healthy", price: 1.6 }
-];
 
-const activities = [
-  ["Inventory received", "240 units of Paracetamol 500mg", "8 min ago", "in"],
-  ["Low-stock alert", "Azithromycin 250mg reached reorder point", "34 min ago", "warn"],
-  ["Purchase order", "PO-2026-184 sent to BioNova", "1 hr ago", "out"],
-  ["Batch updated", "INS-26B4 expiry verified", "2 hrs ago", "check"]
-];
-
-function formatDate(date) {
-  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(date));
-}
-
-function daysUntil(date) {
-  return Math.ceil((new Date(date) - new Date()) / 86400000);
-}
-
-function Status({ value }) {
-  return <span className={`status ${value.toLowerCase().replace(/\s/g, "-")}`}>{value}</span>;
-}
-
-function Login({ onLogin }) {
-  const [email, setEmail] = useState("admin@medistock.com");
-  const [password, setPassword] = useState("admin123");
-  const [name, setName] = useState("");
-  const [isRegister, setIsRegister] = useState(false);
-  return (
-    <div className="auth-shell">
-      <div className="auth-art">
-        <div className="orb orb-one" /><div className="orb orb-two" />
-        <div className="brand-lockup"><div className="brand-mark"><HeartPulse size={25}/></div><span>MediStock<span style={{color: 'var(--brand)'}}>Pro</span></span></div>
-        <div className="auth-copy drop-shadow-2xl">
-          <span className="eyebrow" style={{color: 'var(--brand)', background: 'rgba(27, 180, 162, 0.1)', padding: '6px 12px', borderRadius: '20px', border: '1px solid rgba(27, 180, 162, 0.2)'}}>ENTERPRISE HEALTHCARE PLATFORM</span>
-          <h1>Intelligent inventory,<br/><span style={{color: 'var(--brand)'}}>zero compromises.</span></h1>
-          <p>Manage your entire medical supply chain with AI-powered forecasting, robust FEFO enforcement, and real-time cold chain monitoring.</p>
-          <div className="trust-row bg-slate-900/60 backdrop-blur-md rounded px-3 py-1 mt-4 inline-flex"><ShieldCheck size={17} color="var(--brand)"/> SOC2 Compliant <span>•</span> <Activity size={17} color="var(--brand)"/> 99.99% Uptime</div>
-        </div>
-      </div>
-      <div className="auth-panel">
-        <div className="auth-form">
-          <div className="mobile-brand"><div className="brand-mark"><HeartPulse size={23}/></div><b>MediStock</b></div>
-          <span className="eyebrow">{isRegister ? "CREATE ACCOUNT" : "WELCOME BACK"}</span>
-          <h2>{isRegister ? "Register a new workspace" : "Sign in to your workspace"}</h2>
-          <p className="muted">{isRegister ? "Join to start managing your inventory." : "Sign in to your enterprise workspace."}</p>
-          
-          {isRegister && <label>Full Name<input value={name} onChange={e=>setName(e.target.value)} type="text" placeholder="John Doe" /></label>}
-          <label>Work email<input value={email} onChange={e=>setEmail(e.target.value)} type="email"/></label>
-          <label>Password
-             <input value={password} onChange={e=>setPassword(e.target.value)} type="password"/>
-             {!isRegister && <button className="link-btn" style={{position: 'absolute', right: 0, top: 0, marginTop: '-24px'}}>Forgot password?</button>}
-          </label>
-          {!isRegister && (
-            <div className="form-row">
-              <label className="checkbox"><input type="checkbox" defaultChecked/> Remember me for 30 days</label>
-            </div>
-          )}
-          <button className="primary full" onClick={onLogin}>{isRegister ? "Register" : "Sign In"} <ChevronRight size={17}/></button>
-          
-          <div style={{textAlign: 'center', marginTop: '16px', fontSize: '14px'}}>
-            {isRegister ? "Already have an account? " : "Don't have an account? "}
-            <button className="link-btn" onClick={() => setIsRegister(!isRegister)}>{isRegister ? "Sign in" : "Register here"}</button>
-          </div>
-
-          <div className="demo-note" style={{background: 'rgba(27, 180, 162, 0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(27, 180, 162, 0.2)', marginTop: '16px'}}>
-            <Sparkles size={15}/><span>Demo credentials pre-filled. Click {isRegister ? "Register" : "Sign In"} to explore.</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function Sidebar({ collapsed, setCollapsed, onLogout }) {
   const navigate = useNavigate();
@@ -136,7 +62,7 @@ function Sidebar({ collapsed, setCollapsed, onLogout }) {
     { title: "Core", items: [["Control Tower", Radio, "/"], ["Command Center", LayoutDashboard, "/command-center"], ["Intelligence Center", BrainCircuit, "/intelligence"]] },
     { title: "Inventory", items: [["Inventory", Boxes, "/inventory"], ["Batches & Expiry", CalendarClock, "/batches"], ["Movements", ClipboardList, "/movements"], ["Shelf Map", Map, "/shelf-map"], ["Mobile Scanner", ScanLine, "/scanner"]] },
     { title: "Procurement", items: [["Purchases", ShoppingCart, "/purchases"], ["Suppliers", Truck, "/suppliers"]] },
-    { title: "Pharmacy", items: [["Pharmacy Workspace", HeartPulse, "/pharmacy"], ["Pharmacy Ops", HeartPulse, "/pharmacy-ops"]] },
+    { title: "Pharmacy & Billing", items: [["Pharmacy Workspace", HeartPulse, "/pharmacy"], ["Pharmacy Ops", HeartPulse, "/pharmacy-ops"], ["Patients", Users, "/patients"], ["Invoices", FileText, "/invoices"]] },
     { title: "Logistics", items: [["Facility Center", MapPin, "/facility-center"], ["Logistics Network", Truck, "/logistics-network"], ["Logistics Ops", Zap, "/logistics-ops"]] },
     { title: "Intelligence", items: [["Financial Intel", Activity, "/financial-intel"], ["Predictive Risk", AlertTriangle, "/predictive-risk"], ["AI Operations", Sparkles, "/ai-operations"], ["Digital Twin", Map, "/digital-twin"], ["Scenario Planning", BarChart3, "/scenario-planning"], ["Vision Queue", Camera, "/vision-queue"]] },
     { title: "Administration", items: [["Users & Roles", Users, "/users-roles"], ["Quality Control", ShieldCheck, "/quality-control"], ["System Health", Server, "/system-health"], ["Error Center", AlertTriangle, "/error-center"], ["Maintenance", Wrench, "/maintenance"], ["Settings", Settings, "/settings"]] }
@@ -429,12 +355,25 @@ function App() {
   useEffect(()=>{
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
+    const handleAuth = () => setLogged(false);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+    window.addEventListener("auth:unauthorized", handleAuth);
+    return () => { 
+      window.removeEventListener("online", handleOnline); 
+      window.removeEventListener("offline", handleOffline); 
+      window.removeEventListener("auth:unauthorized", handleAuth);
+    };
   }, []);
 
-  if(!logged) return <Login onLogin={()=>setLogged(true)}/>;
+  if(!logged) return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<Login setLogged={setLogged} />} />
+      <Route path="/register" element={<Register setIsAuthenticated={setLogged} />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
   
   const Fallback = () => (
     <div className="page fade-in" style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', height: '100%', padding: '40px'}}>
@@ -478,12 +417,14 @@ function App() {
       <Route path="/movements" element={<Movements setToast={setToast}/>} />
       <Route path="/settings" element={<Administration setToast={setToast}/>} />
       <Route path="/quality-control" element={<QualityControl setToast={setToast}/>} />
+      <Route path="/patients" element={<Patients setToast={setToast}/>} />
+      <Route path="/invoices" element={<Invoices setToast={setToast}/>} />
       <Route path="*" element={<Fallback />} />
     </Routes>
   );
 
   return <div className={`app-shell ${collapsed?"side-collapsed":""}`}>
-    <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} onLogout={()=>setLogged(false)}/>
+    <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} onLogout={()=>{setLogged(false); localStorage.removeItem('medistock_token');}}/>
     <main className="main">
       {!isOnline && <div style={{background: '#f43f5e', color: 'white', padding: '8px 16px', fontSize: '13px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontWeight: 500}}><AlertTriangle size={15}/> You are currently offline. MediStock is running in read-only mode.</div>}
       <Header theme={theme} setTheme={setTheme} onMenu={()=>setCollapsed(!collapsed)} search={search} setSearch={setSearch} setCmdOpen={setCmdOpen} setToast={setToast}/>

@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { Plus, Truck, ChevronRight } from "lucide-react";
+import { Plus, Truck, ChevronRight, Edit, Trash2 } from "lucide-react";
 import { useApi } from "../hooks/useApi";
+import client from "../api/client";
 import { Modal } from "../components/ui";
 
 export function Suppliers({ setToast }) {
   const { data: suppliers, loading, refetch } = useApi("/suppliers");
   const [showAdd, setShowAdd] = useState(false);
+  const [editingSup, setEditingSup] = useState(null);
   const [formData, setFormData] = useState({ name: "", email: "", contactPerson: "", leadTimeDays: 7, currency: "USD" });
 
   if (loading) {
@@ -16,21 +18,29 @@ export function Suppliers({ setToast }) {
 
   const handleSave = async () => {
     try {
-      const res = await fetch("/api/suppliers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify(formData)
-      });
-      if(res.ok) {
-        if(setToast) setToast("Supplier added successfully.");
-        setShowAdd(false);
-        setFormData({ name: "", email: "", contactPerson: "", leadTimeDays: 7, currency: "USD" });
-        refetch();
+      if (editingSup) {
+        await client.put(`/suppliers/${editingSup.id}`, formData);
       } else {
-        if(setToast) setToast("Failed to add supplier.");
+        await client.post('/suppliers', formData);
       }
+      setShowAdd(false);
+      setEditingSup(null);
+      refetch();
+      if(setToast) setToast(editingSup ? "Supplier updated successfully." : "Supplier added successfully.");
     } catch(e) {
-      if(setToast) setToast("Error adding supplier.");
+      if(setToast) setToast("Failed to save supplier.");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm("Are you sure you want to delete this supplier?")) {
+      try {
+        await client.delete(`/suppliers/${id}`);
+        refetch();
+        if(setToast) setToast("Supplier deleted successfully.");
+      } catch(e) {
+        if(setToast) setToast("Failed to delete supplier.");
+      }
     }
   };
 
@@ -56,7 +66,11 @@ export function Suppliers({ setToast }) {
           <div key={s.id} className="panel supplier-card">
              <div className="sup-head">
                <div><Truck size={18}/> <b>{s.name}</b></div>
-               <span className={`status ${statusTone}`}>{s.status}</span>
+               <div style={{display:"flex", gap:5, alignItems:"center"}}>
+                 <span className={`status ${statusTone}`}>{s.status}</span>
+                 <button className="icon-btn" onClick={(e) => { e.stopPropagation(); setEditingSup(s); setFormData({name: s.name, email: s.email, contactPerson: s.contactPerson, leadTimeDays: s.leadTimeDays, currency: s.currency}); setShowAdd(true); }}><Edit size={14}/></button>
+                 <button className="icon-btn" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}><Trash2 size={14} color="var(--rose)"/></button>
+               </div>
              </div>
              
              <div style={{fontSize:12, color:"var(--muted)", margin:"-5px 0 10px"}}>{s.contactPerson || s.email || "No contact"}</div>
@@ -87,7 +101,7 @@ export function Suppliers({ setToast }) {
     </div>
 
     {showAdd && (
-      <Modal title="Add Supplier" close={() => setShowAdd(false)}>
+      <Modal title={editingSup ? "Edit Supplier" : "Add Supplier"} close={() => { setShowAdd(false); setEditingSup(null); }}>
         <div className="form-grid">
           <label>Supplier Name
             <input type="text" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} />
@@ -103,8 +117,8 @@ export function Suppliers({ setToast }) {
           </label>
         </div>
         <div className="modal-actions mt-6 flex justify-between">
-          <button className="secondary" onClick={() => setShowAdd(false)}>Cancel</button>
-          <button className="primary" onClick={handleSave}>Save Supplier</button>
+          <button className="secondary" onClick={() => { setShowAdd(false); setEditingSup(null); }}>Cancel</button>
+          <button className="primary" onClick={handleSave}>{editingSup ? "Save Changes" : "Save Supplier"}</button>
         </div>
       </Modal>
     )}

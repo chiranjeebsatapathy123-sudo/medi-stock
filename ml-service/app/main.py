@@ -41,6 +41,17 @@ class StockoutRiskRequest(BaseModel):
     medicine_id: str
     branch_id: str
 
+class VisionRequest(BaseModel):
+    camera_id: str
+    image_data: Optional[str] = None
+
+class VisionResponse(BaseModel):
+    camera_id: str
+    event_type: str
+    confidence: float
+    detection: str
+    expected: str
+
 class StockoutRiskResponse(BaseModel):
     medicine: str
     branch: str
@@ -130,6 +141,24 @@ def predict_stockout_risk(req: StockoutRiskRequest):
         ],
         model_version="StockoutRisk-v1.1",
         data_freshness="Just now"
+    )
+
+@app.post("/predict/vision", response_model=VisionResponse)
+def predict_vision(req: VisionRequest):
+    # ML Mock implementation for Computer Vision Camera processing
+    events = [
+        {"event_type": "PALLET_MISALIGNMENT", "detection": "Pallet off-center by 15cm", "expected": "Pallet centered within 5cm"},
+        {"event_type": "FOREIGN_OBJECT", "detection": "Unrecognized box shape in aisle 3", "expected": "Clear aisle"},
+        {"event_type": "SPILL_DETECTED", "detection": "Liquid pool (0.5m) near cold storage", "expected": "Dry floor"},
+        {"event_type": "UNAUTHORIZED_PERSONNEL", "detection": "Person without high-vis vest", "expected": "High-vis vest present"}
+    ]
+    evt = random.choice(events)
+    return VisionResponse(
+        camera_id=req.camera_id,
+        event_type=evt["event_type"],
+        confidence=random.uniform(0.75, 0.98),
+        detection=evt["detection"],
+        expected=evt["expected"]
     )
 
 if __name__ == "__main__":

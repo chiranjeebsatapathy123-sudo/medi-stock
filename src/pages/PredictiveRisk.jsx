@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, TrendingDown, Clock3, AlertTriangle, Activity, Search, ShieldCheck, ThermometerSnowflake, Truck, Loader } from 'lucide-react';
+import client from '../api/client';
 
 export function PredictiveRisk({ setToast }) {
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -10,16 +11,11 @@ export function PredictiveRisk({ setToast }) {
     const fetchRisk = async () => {
       setLoading(true);
       try {
-        const res = await fetch('/api/ai/predict/stockout-risk', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            medicine_id: "00000000-0000-0000-0000-000000000000",
-            horizon_days: 30
-          })
+        const res = await client.post('/ai/predict/stockout-risk', {
+          medicine_id: "00000000-0000-0000-0000-000000000000",
+          horizon_days: 30
         });
-        const data = await res.json();
-        setStockoutRisk(data);
+        setStockoutRisk(res.data);
       } catch (err) {
         console.error(err);
       } finally {

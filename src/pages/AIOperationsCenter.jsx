@@ -4,6 +4,7 @@ import {
   BrainCircuit, Database, Lock, Activity, RefreshCw, PowerOff, Filter,
   Bot, ShieldHalf, Scale, Search, ServerCog, Cpu, ZapOff, Loader
 } from 'lucide-react';
+import client from '../api/client';
 
 export function AIOperationsCenter({ setToast }) {
   const [activeTab, setActiveTab] = useState("Model Health");
@@ -17,8 +18,8 @@ export function AIOperationsCenter({ setToast }) {
       setLoading(true);
       try {
         const [modelsRes, healthRes] = await Promise.all([
-          fetch('/api/ai/models').then(r => r.json()),
-          fetch('/api/ai/model-health').then(r => r.json())
+          client.get('/ai/models').then(r => r.data),
+          client.get('/ai/model-health').then(r => r.data)
         ]);
         setModels(modelsRes || []);
         setModelHealth(healthRes || null);
