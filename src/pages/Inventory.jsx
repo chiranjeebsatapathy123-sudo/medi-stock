@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Filter, Plus, RefreshCw, PackageSearch, Camera, Sparkles, Edit, Trash2, AlertOctagon } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { inventoryService } from "../services/inventoryService";
 import { Status, Modal, EmptyState } from "../components/ui";
 import { MedicineDetail } from "./MedicineDetail";
@@ -100,14 +100,15 @@ export function Inventory({ search, setToast }) {
 
   const filtered = useMemo(() => {
     return medicines.filter(m => {
-      const matchSearch = `${m.genericName} ${m.brandName} ${m.code} ${m.category}`.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = `${m.genericName} ${m.brandName} ${m.code} ${m.category}`.toLowerCase().includes((search || "").toLowerCase());
       if (!matchSearch) return false;
       const stock = m.totalStock || 0;
+      const stat = m.status || "ACTIVE";
       if (filter === "All") return true;
-      if (filter === "Healthy") return stock >= m.safetyStock && m.status === "ACTIVE";
-      if (filter === "Low stock") return stock < m.safetyStock && stock > 0 && m.status === "ACTIVE";
-      if (filter === "Out of stock") return stock === 0 && m.status === "ACTIVE";
-      if (filter === "Archived") return m.status === "INACTIVE";
+      if (filter === "Healthy") return stock >= (m.safetyStock || 0) && stat === "ACTIVE";
+      if (filter === "Low stock") return stock < (m.safetyStock || 0) && stock > 0 && stat === "ACTIVE";
+      if (filter === "Out of stock") return stock === 0 && stat === "ACTIVE";
+      if (filter === "Archived") return stat === "INACTIVE";
       return true;
     });
   }, [filter, search, medicines]);
@@ -127,18 +128,26 @@ export function Inventory({ search, setToast }) {
     
     <div className="inventory-toolbar">
       <div className="tabs">
-        {["All","Healthy","Low stock","Out of stock", "Archived"].map(x => (
-          <button key={x} className={filter===x?"selected":""} onClick={()=>setFilter(x)}>
-            {x}
-            <span>{
-              x==="All" ? medicines.length :
-              x==="Healthy" ? medicines.filter(m=>(m.totalStock || 0) >= m.safetyStock && m.status==="ACTIVE").length :
-              x==="Low stock" ? medicines.filter(m=>(m.totalStock || 0) > 0 && (m.totalStock || 0) < m.safetyStock && m.status==="ACTIVE").length :
-              x==="Out of stock" ? medicines.filter(m=>(m.totalStock || 0) === 0 && m.status==="ACTIVE").length :
-              medicines.filter(m=>m.status==="INACTIVE").length
-            }</span>
-          </button>
-        ))}
+        {["All","Healthy","Low stock","Out of stock", "Archived"].map(x => {
+          const count = x==="All" ? medicines.length :
+            x==="Healthy" ? medicines.filter(m=>(m.totalStock || 0) >= (m.safetyStock || 0) && (m.status || "ACTIVE")==="ACTIVE").length :
+            x==="Low stock" ? medicines.filter(m=>(m.totalStock || 0) > 0 && (m.totalStock || 0) < (m.safetyStock || 0) && (m.status || "ACTIVE")==="ACTIVE").length :
+            x==="Out of stock" ? medicines.filter(m=>(m.totalStock || 0) === 0 && (m.status || "ACTIVE")==="ACTIVE").length :
+            medicines.filter(m=>(m.status || "ACTIVE")==="INACTIVE").length;
+          
+          return (
+            <button key={x} className={filter===x?"selected":""} onClick={()=>setFilter(x)} style={{ position: 'relative' }}>
+              {x}
+              <span style={{ 
+                background: filter === x ? 'var(--primary)' : 'var(--surface-2)',
+                color: filter === x ? 'white' : 'var(--text)' 
+              }}>{count}</span>
+              {filter === x && (
+                <motion.div layoutId="tab-indicator" style={{ position: 'absolute', bottom: -2, left: 0, right: 0, height: 2, background: 'var(--primary)', borderRadius: 2 }} />
+              )}
+            </button>
+          )
+        })}
       </div>
       <div className="view-note"><RefreshCw size={14}/> {loading ? "Syncing..." : "Updated just now"}</div>
     </div>
@@ -156,12 +165,15 @@ export function Inventory({ search, setToast }) {
         
         {loading ? <div style={{padding:60,textAlign:"center", color: 'var(--muted)'}}>Loading inventory master data...</div> : 
          filtered.length === 0 ? <EmptyState icon={PackageSearch} title="No medicines found" description="There are no medicines matching your current filters." actionText="Clear Filters" onAction={()=>setFilter("All")} /> :
-         filtered.map((m, index) => (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            whileHover={{ scale: 1.01, backgroundColor: 'var(--surface-hover)' }}
+         <AnimatePresence mode="popLayout">
+           {filtered.map((m, index) => (
+            <motion.div 
+              layout
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.1 } }}
+              transition={{ duration: 0.2, delay: index * 0.03 }}
+              whileHover={{ scale: 1.01, backgroundColor: 'var(--surface-hover)' }}
             className="data-row" 
             key={m.id} 
             style={{cursor: "pointer", position: 'relative', overflow: 'hidden'}} 
@@ -189,7 +201,9 @@ export function Inventory({ search, setToast }) {
               <button className="icon-btn" onClick={(e)=>{ e.stopPropagation(); handleDelete(m.id); }}><Trash2 size={15} color="var(--rose)"/></button>
             </span>
           </motion.div>
-        ))}
+          ))}
+         </AnimatePresence>
+        }
       </div>
     </div>
 

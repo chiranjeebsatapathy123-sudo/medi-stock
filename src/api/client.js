@@ -20,6 +20,24 @@ client.interceptors.request.use(
     // Add correlation ID if useful for tracing
     config.headers['X-Request-ID'] = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(7);
 
+    // Add Tenant ID based on selected workspace
+    const branchInfoStr = localStorage.getItem('medistock_branch');
+    if (branchInfoStr) {
+      try {
+        const branchInfo = JSON.parse(branchInfoStr);
+        const tenantMap = {
+           'br-1': 'tenant_main',
+           'br-2': 'tenant_icu',
+           'br-3': 'tenant_er'
+        };
+        config.headers['X-Tenant-ID'] = tenantMap[branchInfo.id] || 'tenant_main';
+      } catch (e) {
+        config.headers['X-Tenant-ID'] = 'tenant_main';
+      }
+    } else {
+      config.headers['X-Tenant-ID'] = 'tenant_main';
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

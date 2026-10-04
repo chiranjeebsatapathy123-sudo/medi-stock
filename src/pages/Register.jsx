@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useSpring } from 'framer-motion';
 import client from '../api/client';
-import { Activity, User, Mail, Lock, Building, ArrowRight } from 'lucide-react';
+import { Activity, User, Mail, Lock, Building, ArrowRight, Globe } from 'lucide-react';
 
 export function Register({ setIsAuthenticated }) {
   const navigate = useNavigate();
@@ -66,29 +66,53 @@ export function Register({ setIsAuthenticated }) {
         transition={{ duration: 1.5 }}
         style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', perspective: '1000px' }}
       >
+         {/* Background Pulse Rings */}
+         <motion.div animate={{ scale: [1, 2.5, 4], opacity: [0.3, 0.1, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }} style={{ position: 'absolute', width: '200px', height: '200px', border: '1px solid #10b981', borderRadius: '50%', zIndex: 0 }} />
+         <motion.div animate={{ scale: [1, 2.5, 4], opacity: [0.3, 0.1, 0] }} transition={{ duration: 4, delay: 1.3, repeat: Infinity, ease: "linear" }} style={{ position: 'absolute', width: '200px', height: '200px', border: '1px solid #10b981', borderRadius: '50%', zIndex: 0 }} />
+         <motion.div animate={{ scale: [1, 2.5, 4], opacity: [0.3, 0.1, 0] }} transition={{ duration: 4, delay: 2.6, repeat: Infinity, ease: "linear" }} style={{ position: 'absolute', width: '200px', height: '200px', border: '1px solid #10b981', borderRadius: '50%', zIndex: 0 }} />
+         
          <motion.div 
            animate={{ rotateY: [0, -10, 0], rotateX: [0, 5, 0] }}
            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-           style={{ width: '400px', height: '500px', background: 'rgba(255,255,255,0.02)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', padding: '24px', gap: '20px' }}
+           style={{ width: '480px', height: '540px', background: 'rgba(15,23,42,0.6)', borderRadius: '32px', border: '1px solid rgba(16,185,129,0.3)', backdropFilter: 'blur(20px)', display: 'flex', flexDirection: 'column', padding: '32px', gap: '20px', position: 'relative', overflow: 'hidden', boxShadow: '0 30px 60px -10px rgba(0,0,0,0.8), inset 0 0 40px rgba(16,185,129,0.1)', zIndex: 1 }}
          >
-           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-             <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(52,211,153,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               <Activity size={20} color="#34d399" />
-             </div>
-             <div>
-               <div style={{ width: '120px', height: '10px', background: 'rgba(255,255,255,0.2)', borderRadius: '5px', marginBottom: '6px' }}></div>
-               <div style={{ width: '80px', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px' }}></div>
-             </div>
+           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, transparent, #10b981, transparent)' }} />
+           
+           <h3 style={{ fontSize: '24px', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Globe color="#10b981" /> Global Intelligence
+           </h3>
+           <p style={{ color: '#94a3b8', fontSize: '15px', margin: 0, marginBottom: '20px', lineHeight: 1.6 }}>Real-time medical supply synchronization across 1,200+ hospitals worldwide.</p>
+
+           <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {/* Massive Animated Globe */}
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 60, repeat: Infinity, ease: "linear" }} style={{ position: 'relative', zIndex: 2, color: 'rgba(16,185,129,0.2)' }}>
+                 <Globe size={280} strokeWidth={0.5} />
+              </motion.div>
+              
+              {/* Radar Sweep */}
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} style={{ position: 'absolute', width: '280px', height: '280px', borderRadius: '50%', background: 'conic-gradient(from 0deg, transparent 70%, rgba(16,185,129,0.4) 100%)', zIndex: 1 }} />
+
+              {/* Floating Data Nodes */}
+              <motion.div animate={{ y: [-15, 15, -15] }} transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }} style={{ position: 'absolute', top: '10%', left: '0%', background: 'rgba(15,23,42,0.9)', padding: '10px 16px', borderRadius: '14px', border: '1px solid rgba(16,185,129,0.4)', display: 'flex', alignItems: 'center', gap: '10px', zIndex: 3, boxShadow: '0 10px 20px rgba(0,0,0,0.5)' }}>
+                <div style={{ width: '10px', height: '10px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 10px #10b981' }}></div>
+                <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px' }}>New York: <span style={{ color: '#10b981' }}>Syncing</span></span>
+              </motion.div>
+
+              <motion.div animate={{ y: [15, -15, 15] }} transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }} style={{ position: 'absolute', bottom: '15%', right: '-5%', background: 'rgba(15,23,42,0.9)', padding: '10px 16px', borderRadius: '14px', border: '1px solid rgba(56,189,248,0.4)', display: 'flex', alignItems: 'center', gap: '10px', zIndex: 3, boxShadow: '0 10px 20px rgba(0,0,0,0.5)' }}>
+                <div style={{ width: '10px', height: '10px', background: '#38bdf8', borderRadius: '50%', boxShadow: '0 0 10px #38bdf8' }}></div>
+                <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.5px' }}>London: <span style={{ color: '#38bdf8' }}>Secured</span></span>
+              </motion.div>
            </div>
            
-           <div style={{ flex: 1, background: 'linear-gradient(to bottom, rgba(16,185,129,0.1), transparent)', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}>
-              <motion.div animate={{ y: [-200, 400] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} style={{ position: 'absolute', left: 0, right: 0, height: '2px', background: 'linear-gradient(to right, transparent, #34d399, transparent)', boxShadow: '0 0 20px #34d399' }}></motion.div>
-           </div>
-           
-           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-             <div style={{ height: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}></div>
-             <div style={{ height: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}></div>
-             <div style={{ height: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}></div>
+           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: 'auto' }}>
+             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+               <div style={{ color: '#10b981', fontSize: '28px', fontWeight: 800, marginBottom: '4px' }}>99.9%</div>
+               <div style={{ color: '#94a3b8', fontSize: '13px', fontWeight: 600 }}>Network Uptime</div>
+             </div>
+             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+               <div style={{ color: '#38bdf8', fontSize: '28px', fontWeight: 800, marginBottom: '4px' }}>12ms</div>
+               <div style={{ color: '#94a3b8', fontSize: '13px', fontWeight: 600 }}>Global Latency</div>
+             </div>
            </div>
          </motion.div>
       </motion.div>

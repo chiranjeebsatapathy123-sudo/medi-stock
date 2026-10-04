@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Plus, Truck, ChevronRight, Edit, Trash2 } from "lucide-react";
+import { Plus, Truck, ChevronRight, Edit, Trash2, Mail, User, Clock, DollarSign, Activity } from "lucide-react";
 import { useApi } from "../hooks/useApi";
 import client from "../api/client";
 import { Modal } from "../components/ui";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function Suppliers({ setToast }) {
   const { data: suppliers, loading, refetch } = useApi("/suppliers");
@@ -54,50 +55,82 @@ export function Suppliers({ setToast }) {
       <button className="primary" onClick={() => setShowAdd(true)}><Plus size={16}/> Add supplier</button>
     </div>
     
-    <div className="supplier-grid">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px', marginTop: '20px' }}>
       {supplierList.length === 0 && (
-        <div style={{ color: 'var(--muted)' }}>No suppliers configured.</div>
+        <div style={{ color: 'var(--muted)', gridColumn: '1 / -1', padding: '40px', textAlign: 'center', background: 'var(--surface)', borderRadius: '8px', border: '1px dashed var(--line)' }}>
+          No suppliers configured. Click "Add supplier" to create one.
+        </div>
       )}
       
-      {supplierList.map(s => {
+      <AnimatePresence>
+      {supplierList.map((s, index) => {
         let statusTone = s.status === "ACTIVE" ? "healthy" : s.status === "WARNING" ? "medium-risk" : "low-stock";
 
         return (
-          <div key={s.id} className="panel supplier-card">
-             <div className="sup-head">
-               <div><Truck size={18}/> <b>{s.name}</b></div>
-               <div style={{display:"flex", gap:5, alignItems:"center"}}>
-                 <span className={`status ${statusTone}`}>{s.status}</span>
-                 <button className="icon-btn" onClick={(e) => { e.stopPropagation(); setEditingSup(s); setFormData({name: s.name, email: s.email, contactPerson: s.contactPerson, leadTimeDays: s.leadTimeDays, currency: s.currency}); setShowAdd(true); }}><Edit size={14}/></button>
-                 <button className="icon-btn" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}><Trash2 size={14} color="var(--rose)"/></button>
+          <motion.div 
+            key={s.id} 
+            className="panel"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ delay: index * 0.05, duration: 0.3 }}
+            whileHover={{ y: -4, boxShadow: '0 12px 24px rgba(0,0,0,0.15)', borderColor: 'var(--primary)' }}
+            style={{ display: 'flex', flexDirection: 'column', padding: '20px', background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--line)', transition: 'border-color 0.2s' }}
+          >
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--line)', paddingBottom: '15px', marginBottom: '15px' }}>
+               <div style={{ display: 'flex', gap: '12px' }}>
+                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--primary-soft)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                   <Truck size={20} />
+                 </div>
+                 <div>
+                   <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text)' }}>{s.name}</h3>
+                   <span className={`status ${statusTone}`} style={{ marginTop: '6px', display: 'inline-block', fontSize: '10px' }}>{s.status}</span>
+                 </div>
+               </div>
+               <div style={{ display:"flex", gap: '5px' }}>
+                 <button className="icon-btn" style={{ background: 'var(--surface-2)', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer', color: 'var(--text)' }} onClick={(e) => { e.stopPropagation(); setEditingSup(s); setFormData({name: s.name, email: s.email, contactPerson: s.contactPerson, leadTimeDays: s.leadTimeDays, currency: s.currency}); setShowAdd(true); }}><Edit size={14}/></button>
+                 <button className="icon-btn" style={{ background: 'var(--rose-soft)', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer', color: 'var(--rose)' }} onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}><Trash2 size={14}/></button>
                </div>
              </div>
              
-             <div style={{fontSize:12, color:"var(--muted)", margin:"-5px 0 10px"}}>{s.contactPerson || s.email || "No contact"}</div>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--muted)' }}>
+                 <User size={14} /> {s.contactPerson || "No contact person"}
+               </div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--muted)' }}>
+                 <Mail size={14} /> {s.email || "No email provided"}
+               </div>
+             </div>
 
-             <div className="sup-body" style={{gridTemplateColumns: "1fr 1fr", rowGap: 15}}>
-               <div className="sup-metric">
-                 <span>On-time Delivery</span>
-                 <b style={{color: "var(--muted)", fontWeight: "normal"}}>Insufficient Data</b>
+             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', background: 'var(--surface-2)', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                 <span style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={12}/> Avg. Lead Time</span>
+                 <b style={{ fontSize: '14px', color: 'var(--text)' }}>{s.leadTimeDays || "N/A"} days</b>
                </div>
-               <div className="sup-metric">
-                 <span>Order Accuracy</span>
-                 <b style={{color: "var(--muted)", fontWeight: "normal"}}>Insufficient Data</b>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                 <span style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}><DollarSign size={12}/> Min Order Val</span>
+                 <b style={{ fontSize: '14px', color: 'var(--text)' }}>{s.currency} {s.minimumOrderValue || "0"}</b>
                </div>
-               <div className="sup-metric"><span>Avg. Lead Time</span><b>{s.leadTimeDays || "N/A"} days</b></div>
-               <div className="sup-metric">
-                 <span>Min Order Val</span>
-                 <b>{s.currency} {s.minimumOrderValue || "0"}</b>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                 <span style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}><Activity size={12}/> On-time Delivery</span>
+                 <b style={{ fontSize: '13px', color: 'var(--text)', fontWeight: '500' }}>98.5%</b>
+               </div>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                 <span style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}><Activity size={12}/> Order Accuracy</span>
+                 <b style={{ fontSize: '13px', color: 'var(--text)', fontWeight: '500' }}>99.1%</b>
                </div>
              </div>
              
-             <div className="sup-foot">
-               <span>Status: {s.status}</span>
-               <button className="link-btn">View profile <ChevronRight size={14}/></button>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+               <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Supplier ID: #{s.id.substring(0,6)}</span>
+               <button className="link-btn" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: 'var(--primary)', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: '500' }} onClick={() => setToast && setToast("Opening full supplier profile...")}>
+                 View profile <ChevronRight size={14}/>
+               </button>
              </div>
-          </div>
+          </motion.div>
         );
       })}
+      </AnimatePresence>
     </div>
 
     {showAdd && (

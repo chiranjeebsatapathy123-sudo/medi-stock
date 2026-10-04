@@ -10,6 +10,7 @@ export function Purchases({ setToast }) {
   const { data: medicines } = useApi("/medicines");
   const [showReceiving, setShowReceiving] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [viewingPo, setViewingPo] = useState(null);
   const [activeTab, setActiveTab] = useState("All");
   const [grnForm, setGrnForm] = useState({ poId: "", batch: "", expiry: "", quantity: "" });
   const [poForm, setPoForm] = useState({ poNumber: "PO-" + Date.now(), supplierId: "", items: [{ medicineId: "", quantity: 1, unitPrice: 0 }] });
@@ -165,7 +166,7 @@ export function Purchases({ setToast }) {
                      }
                   }}>Approve</button>
                 )}
-                <button className="primary" onClick={() => setToast("View PO Details.")}>View</button>
+                <button className="primary" onClick={() => setViewingPo(po)}>View</button>
              </div>
           </div>
         </div>
@@ -264,6 +265,62 @@ export function Purchases({ setToast }) {
             <button type="submit" className="primary">Create PO</button>
           </div>
         </form>
+      </Modal>
+    )}
+
+    {viewingPo && (
+      <Modal title={`Purchase Order Details - ${viewingPo.poNumber}`} close={() => setViewingPo(null)}>
+        <div style={{ padding: "0 10px" }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20, padding: 15, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--line)' }}>
+            <div>
+              <p className="eyebrow" style={{ color: 'var(--muted)', fontSize: 11, marginBottom: 5, letterSpacing: 0.5 }}>Supplier</p>
+              <h4 style={{ margin: 0, color: 'var(--text)', fontSize: 14 }}>{viewingPo.supplier?.name || "Unknown"}</h4>
+            </div>
+            <div>
+              <p className="eyebrow" style={{ color: 'var(--muted)', fontSize: 11, marginBottom: 5, letterSpacing: 0.5 }}>Status</p>
+              <span className={`status ${viewingPo.status?.toLowerCase().replace('_', '-')}`} style={{ display: 'inline-block' }}>{viewingPo.status}</span>
+            </div>
+          </div>
+          
+          <h4 style={{ marginBottom: 15, color: 'var(--text)', borderBottom: '1px solid var(--line)', paddingBottom: 8, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ShoppingCart size={16} color="var(--primary)" /> Order Items
+          </h4>
+          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--line)', color: 'var(--muted)' }}>
+                <th style={{ padding: '10px 5px', fontWeight: 500 }}>Medicine</th>
+                <th style={{ padding: '10px 5px', fontWeight: 500 }}>Qty</th>
+                <th style={{ padding: '10px 5px', fontWeight: 500 }}>Unit Price</th>
+                <th style={{ padding: '10px 5px', textAlign: 'right', fontWeight: 500 }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {viewingPo.items?.map((item, idx) => (
+                <tr key={idx} style={{ borderBottom: '1px dashed var(--line)', color: 'var(--text)' }}>
+                  <td style={{ padding: '12px 5px' }}>
+                    <div style={{ fontWeight: 500 }}>{item.medicine?.genericName || "Unknown"}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{item.medicine?.medicineCode}</div>
+                  </td>
+                  <td style={{ padding: '12px 5px' }}>{item.quantity}</td>
+                  <td style={{ padding: '12px 5px' }}>{viewingPo.currency || 'USD'} {Number(item.unitPrice || 0).toFixed(2)}</td>
+                  <td style={{ padding: '12px 5px', textAlign: 'right', fontWeight: 500 }}>{viewingPo.currency || 'USD'} {Number(item.totalPrice || 0).toFixed(2)}</td>
+                </tr>
+              ))}
+              {(!viewingPo.items || viewingPo.items.length === 0) && (
+                <tr><td colSpan="4" style={{ padding: '15px 5px', textAlign: 'center', color: 'var(--muted)' }}>No items found</td></tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan="3" style={{ padding: '20px 5px 5px 5px', textAlign: 'right', fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>Total Amount:</td>
+                <td style={{ padding: '20px 5px 5px 5px', textAlign: 'right', fontWeight: 700, color: 'var(--primary)', fontSize: 16 }}>{viewingPo.currency || 'USD'} {Number(viewingPo.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              </tr>
+            </tfoot>
+          </table>
+          <div className="modal-actions mt-6 flex justify-end" style={{ borderTop: '1px solid var(--line)', paddingTop: 15, marginTop: 20 }}>
+            <button className="primary" onClick={() => setViewingPo(null)}>Close</button>
+          </div>
+        </div>
       </Modal>
     )}
   </div>;

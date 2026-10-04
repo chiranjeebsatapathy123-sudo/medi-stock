@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Radio, AlertTriangle, CheckCircle, ShieldAlert, ThermometerSnowflake, Truck, Clock, Crosshair, ArrowRight, Activity, Search, RefreshCw, Zap } from 'lucide-react';
+import { Radio, AlertTriangle, CheckCircle, ShieldAlert, ThermometerSnowflake, Truck, Clock, Crosshair, ArrowRight, Activity, Search, RefreshCw, Zap, Scan, Eye } from 'lucide-react';
 
 export function ControlTower({ setToast }) {
   const [lastUpdate, setLastUpdate] = useState(new Date());
@@ -7,11 +7,36 @@ export function ControlTower({ setToast }) {
   const [events, setEvents] = useState([]);
   const [risks, setRisks] = useState([]);
 
-  // Simulate incoming real-time SSE stream
+  // Simulate incoming real-time SSE stream for IoT devices
   useEffect(() => {
-    // TODO: Connect to backend SSE endpoint
     setStatus('LIVE');
-    setLastUpdate(new Date());
+    
+    const possibleEvents = [
+      { type: 'RFID_SCAN', severity: 'INFO', entity: 'Batch AMX-900 arrived at Loading Dock B' },
+      { type: 'TEMP_FLUCTUATION', severity: 'WARNING', entity: 'Cold Storage Unit 4 temperature rose by 1.2°C' },
+      { type: 'AI_VISION', severity: 'CRITICAL', entity: 'Spill detected in Aisle 4. Safety protocol triggered.' },
+      { type: 'INVENTORY_SYNC', severity: 'INFO', entity: 'Automated reconcile completed for Shelf A12' },
+      { type: 'SUPPLY_CHAIN', severity: 'WARNING', entity: 'Logistics truck delayed by 45 mins (Traffic)' },
+      { type: 'SECURITY', severity: 'CRITICAL', entity: 'Unauthorized access attempt at Pharmacy Wing B' },
+      { type: 'TEMP_ALERT', severity: 'CRITICAL', entity: 'Fridge 2 breached threshold. Expiry risk imminent.' }
+    ];
+
+    const intervalId = setInterval(() => {
+      const randomEventTemplate = possibleEvents[Math.floor(Math.random() * possibleEvents.length)];
+      const newEvent = {
+        ...randomEventTemplate,
+        id: `EVT-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+        timestamp: new Date().getTime()
+      };
+
+      setEvents(prev => {
+        const updated = [newEvent, ...prev];
+        return updated.slice(0, 15); // Keep last 15
+      });
+      setLastUpdate(new Date());
+    }, 4500);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   // Initialize risks based on actual DB
@@ -56,19 +81,25 @@ export function ControlTower({ setToast }) {
             </div>
             <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', maxHeight: '500px' }}>
                {events.length === 0 ? (
-                 <div style={{ textAlign: 'center', padding: '20px', color: 'var(--muted)', fontSize: '13px' }}>Waiting for incoming events...</div>
+                 <div style={{ textAlign: 'center', padding: '20px', color: 'var(--muted)', fontSize: '13px' }}>Establishing encrypted uplink to IoT devices...</div>
                ) : events.map(evt => (
-                  <div key={evt.id} className="fade-in-up" style={{ padding: '12px', borderRadius: '8px', border: `1px solid ${evt.severity === 'CRITICAL' ? 'var(--rose)' : 'var(--amber)'}`, background: 'var(--bg)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                     <div style={{ color: evt.severity === 'CRITICAL' ? 'var(--rose)' : 'var(--amber)' }}>
-                        {evt.type.includes('TEMPERATURE') ? <ThermometerSnowflake size={18}/> : <AlertTriangle size={18}/>}
+                  <div key={evt.id} className="fade-in-up" style={{ padding: '12px', borderRadius: '8px', border: `1px solid ${evt.severity === 'CRITICAL' ? 'var(--rose)' : evt.severity === 'WARNING' ? 'var(--amber)' : 'var(--blue)'}`, background: 'var(--bg)', display: 'flex', gap: '12px', alignItems: 'flex-start', boxShadow: 'var(--shadow)' }}>
+                     <div style={{ color: evt.severity === 'CRITICAL' ? 'var(--rose)' : evt.severity === 'WARNING' ? 'var(--amber)' : 'var(--blue)', marginTop: '2px' }}>
+                        {evt.type.includes('TEMP') ? <ThermometerSnowflake size={18}/> : 
+                         evt.type.includes('VISION') ? <Eye size={18} /> : 
+                         evt.type.includes('SCAN') ? <Scan size={18} /> : 
+                         <Activity size={18}/>}
                      </div>
                      <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                           <span style={{ fontSize: '12px', fontWeight: 700, color: evt.severity === 'CRITICAL' ? 'var(--rose)' : 'var(--amber)' }}>{evt.type}</span>
-                           <span style={{ fontSize: '10px', color: 'var(--muted)' }}>{new Date(evt.timestamp).toLocaleTimeString()}</span>
+                           <span style={{ fontSize: '12px', fontWeight: 800, color: evt.severity === 'CRITICAL' ? 'var(--rose)' : evt.severity === 'WARNING' ? 'var(--amber)' : 'var(--blue)' }}>{evt.type.replace('_', ' ')}</span>
+                           <span style={{ fontSize: '10px', color: 'var(--muted)', fontFamily: 'monospace' }}>{new Date(evt.timestamp).toLocaleTimeString()}</span>
                         </div>
-                        <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '4px' }}>{evt.entity}</div>
-                        <div style={{ fontSize: '10px', color: 'var(--muted)' }}>ID: {evt.id}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '6px', lineHeight: 1.4 }}>{evt.entity}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <div style={{ fontSize: '10px', color: 'var(--muted)', fontFamily: 'monospace' }}>ID: {evt.id}</div>
+                           {evt.severity === 'CRITICAL' && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--rose)' }} className="pulse"></div>}
+                        </div>
                      </div>
                   </div>
                ))}
