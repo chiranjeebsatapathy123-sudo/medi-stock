@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Search, Box, ArrowDownToLine, ArrowUpRight, CheckCircle2, AlertTriangle, ScanLine, X } from 'lucide-react';
+import { Camera, Search, Box, ArrowDownToLine, ArrowUpRight, CheckCircle2, AlertTriangle, ScanLine, X, Bot, ShieldAlert } from 'lucide-react';
 import client from '../api/client';
 
 export function WarehouseScanner({ setToast }) {
@@ -8,6 +8,7 @@ export function WarehouseScanner({ setToast }) {
   const [scannedCode, setScannedCode] = useState('');
   const [scanning, setScanning] = useState(false);
   const [locationInfo, setLocationInfo] = useState(null);
+  const [visionAnalysis, setVisionAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -19,6 +20,7 @@ export function WarehouseScanner({ setToast }) {
     setScannedCode('');
     setError(null);
     setLocationInfo(null);
+    setVisionAnalysis(null);
     setScanning(true);
     // Focus the hidden input to capture external scanner strokes, or user can type
     setTimeout(() => {
@@ -39,6 +41,25 @@ export function WarehouseScanner({ setToast }) {
       setActiveTab('result');
     } catch(err) {
       setError("Unknown barcode or not found in system.");
+      setActiveTab('result');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runVisionAnalysis = async () => {
+    setScanning(false);
+    setLoading(true);
+    setError(null);
+    setVisionAnalysis(null);
+    
+    try {
+      // Trigger backend to call ML Python service
+      const res = await client.post('/facility/vision/trigger-simulation', { deviceId: 'mobile-scanner-01' });
+      setVisionAnalysis(res.data);
+      setActiveTab('result');
+    } catch(err) {
+      setError("Failed to run AI vision model.");
       setActiveTab('result');
     } finally {
       setLoading(false);
@@ -111,6 +132,12 @@ export function WarehouseScanner({ setToast }) {
                <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-6 rounded-xl">Go</button>
              </div>
            </form>
+           
+           <div className="mt-12 w-full max-w-sm">
+             <button onClick={runVisionAnalysis} className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl py-4 font-bold flex justify-center items-center gap-2">
+               <Bot className="text-blue-400" /> Analyze Shelf with AI Vision
+             </button>
+           </div>
         </div>
       </div>
     );
@@ -133,6 +160,30 @@ export function WarehouseScanner({ setToast }) {
               <h3 className="text-white font-bold text-lg mb-2">Scan Failed</h3>
               <p className="text-slate-300">{error}</p>
               <button onClick={() => setActiveTab('scan')} className="mt-6 bg-slate-800 text-white px-6 py-2 rounded-lg font-medium">Try Again</button>
+            </div>
+          ) : visionAnalysis ? (
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+              <div className="bg-rose-500/10 p-6 flex flex-col items-center border-b border-slate-700/50">
+                 <ShieldAlert size={48} className="text-rose-500 mb-2"/>
+                 <h3 className="text-rose-400 font-bold">AI Anomaly Detected</h3>
+                 <p className="text-white text-xl font-bold mt-2">{visionAnalysis.eventType?.replace('_', ' ')}</p>
+              </div>
+              <div className="p-4 space-y-3">
+                 <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg text-sm">
+                    <div className="text-slate-300 mb-1">Observation:</div>
+                    <div className="text-white font-medium">{visionAnalysis.detection}</div>
+                 </div>
+                 <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg text-sm mt-2">
+                    <div className="text-slate-300 mb-1">Expected Standard:</div>
+                    <div className="text-white font-medium">{visionAnalysis.expected}</div>
+                 </div>
+                 <div className="flex justify-between mt-4"><span className="text-slate-400">Confidence</span><span className="text-amber-400 font-bold">{(visionAnalysis.confidenceScore * 100).toFixed(1)}%</span></div>
+                 <div className="flex justify-between"><span className="text-slate-400">Device ID</span><span className="text-white text-xs">{visionAnalysis.deviceId}</span></div>
+              </div>
+              <div className="p-4 pt-0 flex gap-2 mt-4">
+                 <button onClick={() => setToast('Log created for review')} className="flex-1 bg-amber-500 text-slate-900 font-bold rounded-xl py-3">Flag for Review</button>
+                 <button onClick={() => setActiveTab('scan')} className="flex-1 bg-slate-700 text-white font-bold rounded-xl py-3">Dismiss</button>
+              </div>
             </div>
           ) : locationInfo ? (
             <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
