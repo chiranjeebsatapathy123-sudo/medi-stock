@@ -25,6 +25,7 @@ export function Login({ setLogged }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
     try {
       const res = await client.post('/auth/login', { email, password });
       localStorage.setItem('medistock_token', res.data.token);
@@ -32,8 +33,25 @@ export function Login({ setLogged }) {
       setLogged(true);
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid credentials or server error.');
+      if (!err.response) {
+        setError('Backend server unreachable (Vercel cannot connect to localhost). Use Demo Mode below or deploy the backend.');
+      } else {
+        setError(err.response?.data?.message || 'Invalid credentials or server error.');
+      }
     }
+  };
+
+  const handleDemoAccess = () => {
+    localStorage.setItem('medistock_token', 'demo_jwt_token_preview');
+    localStorage.setItem('medistock_user', JSON.stringify({
+      id: 1,
+      name: 'System Admin',
+      email: email || 'admin@medistock.com',
+      role: 'ADMIN',
+      tenantId: 'tenant_main'
+    }));
+    setLogged(true);
+    navigate('/dashboard');
   };
 
   return (
@@ -118,6 +136,22 @@ export function Login({ setLogged }) {
                  style={{ padding: '16px', background: 'linear-gradient(135deg, #6366f1, #3b82f6)', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 700, cursor: 'pointer', marginTop: '10px', boxShadow: '0 10px 30px -10px rgba(99,102,241,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
                >
                  Sign In <ArrowRight size={18} />
+               </motion.button>
+
+               <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "14px 0" }}>
+                 <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.1)" }} />
+                 <span style={{ fontSize: "12px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>or</span>
+                 <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.1)" }} />
+               </div>
+
+               <motion.button 
+                 whileHover={{ scale: 1.02 }}
+                 whileTap={{ scale: 0.98 }}
+                 type="button" 
+                 onClick={handleDemoAccess}
+                 style={{ width: "100%", padding: "14px", background: "rgba(56,189,248,0.1)", color: "#38bdf8", border: "1px solid rgba(56,189,248,0.3)", borderRadius: "12px", fontSize: "15px", fontWeight: 600, cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
+               >
+                 <Activity size={16} /> Explore in Demo Mode
                </motion.button>
             </form>
             <div style={{ marginTop: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>
