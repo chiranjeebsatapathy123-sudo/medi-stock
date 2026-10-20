@@ -45,6 +45,8 @@ import { Invoices } from "./pages/Invoices";
 import { LandingPage } from "./pages/LandingPage";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { CommandPalette } from "./components/CommandPalette";
+
 
 
 
@@ -252,41 +254,6 @@ function SettingsView() {
   </div>;
 }
 
-function CommandPalette({ open, setOpen }) {
-  const navigate = useNavigate();
-
-  const [query, setQuery] = useState("");
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setOpen(o => !o);
-      }
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  if(!open) return null;
-
-  const links = ["Intelligence Center", "Today", "Dashboard", "Inventory", "Shelf Map", "Batches & Expiry", "Purchases", "Suppliers", "Analytics", "AI Insights", "Reports", "Users & Roles", "Movements", "Settings"];
-  const filtered = links.filter(l => l.toLowerCase().includes(query.toLowerCase()));
-
-  return <div className="modal-backdrop" onMouseDown={()=>setOpen(false)} style={{alignItems:"flex-start", paddingTop:"10vh"}}>
-    <div className="modal command-modal" onMouseDown={e=>e.stopPropagation()} style={{padding:0, width:500}}>
-       <div className="cmd-header"><Search size={16}/><input autoFocus value={query} onChange={e=>setQuery(e.target.value)} placeholder="Type a command or search..."/></div>
-       <div className="cmd-list">
-          {filtered.length===0 && <div className="empty-state">No results found</div>}
-          {filtered.map(l => (
-            <button key={l} className="cmd-item" onClick={()=>{navigate({"Intelligence Center":"/intelligence","Today":"/today","Command Center":"/command-center","Dashboard":"/dashboard","Control Tower":"/","Pharmacy Workspace":"/pharmacy","Pharmacy Ops":"/pharmacy-ops","Inventory":"/inventory","Batches & Expiry":"/batches","Purchases":"/purchases","Suppliers":"/suppliers","Logistics Network":"/logistics-network","Logistics Ops":"/logistics-ops","Facility Center":"/facility-center","Digital Twin":"/digital-twin","Vision Queue":"/vision-queue","Maintenance":"/maintenance","System Health":"/system-health","Error Center":"/error-center","Shelf Map":"/shelf-map","Scenario Planning":"/scenario-planning","AI Operations":"/ai-operations","Financial Intel":"/financial-intel","Predictive Risk":"/predictive-risk","Analytics":"/analytics","AI Insights":"/ai-insights","Reports":"/reports","Users & Roles":"/users-roles","Movements":"/movements","Settings":"/settings","Quality Control":"/quality-control"}[l]);setOpen(false)}}>
-              <ChevronRight size={14}/> Go to {l} <span className="kbd">Jump</span>
-            </button>
-          ))}
-       </div>
-    </div>
-  </div>;
-}
 
 
 
@@ -431,7 +398,14 @@ function App() {
       {content}
     </main>
     {toast&&<div className="toast"><ShieldCheck size={17}/>{toast}</div>}
-    <CommandPalette open={cmdOpen} setOpen={setCmdOpen}/>
+    <CommandPalette 
+      open={cmdOpen} 
+      setOpen={setCmdOpen} 
+      onClose={() => setCmdOpen(false)} 
+      setToast={setToast} 
+      theme={theme} 
+      setTheme={setTheme} 
+    />
   </div>;
 }
 createRoot(document.getElementById("root")).render(

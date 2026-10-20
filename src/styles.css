@@ -1693,7 +1693,38 @@ body {
   box-shadow: 0 6px 20px -3px rgba(2, 132, 199, 0.6);
   transform: translateY(-1px);
 }
-
 .status {
   backdrop-filter: blur(8px);
 }
+
+/* Command Palette Spotlight Enhancements */
+.cmd-palette-box {
+  animation: cmdScaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
+}
+
+@keyframes cmdScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.cmd-palette-box ::-webkit-scrollbar {
+  width: 6px;
+}
+.cmd-palette-box ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cmd-palette-box ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 4px;
+}
+.cmd-palette-box ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
