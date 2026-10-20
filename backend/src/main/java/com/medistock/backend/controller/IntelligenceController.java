@@ -1,16 +1,14 @@
 package com.medistock.backend.controller;
 
-import com.medistock.backend.service.IntelligenceService;
 import com.medistock.backend.security.TenantContext;
+import com.medistock.backend.service.AiAnomalyDetectionService;
+import com.medistock.backend.service.IntelligenceService;
+import com.medistock.backend.service.ReorderRecommendationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 
+import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.UUID;
 
 @RestController
@@ -18,9 +16,15 @@ import java.util.UUID;
 public class IntelligenceController {
 
     private final IntelligenceService intelligenceService;
+    private final AiAnomalyDetectionService aiAnomalyDetectionService;
+    private final ReorderRecommendationService reorderRecommendationService;
 
-    public IntelligenceController(IntelligenceService intelligenceService) {
+    public IntelligenceController(IntelligenceService intelligenceService,
+                                  AiAnomalyDetectionService aiAnomalyDetectionService,
+                                  ReorderRecommendationService reorderRecommendationService) {
         this.intelligenceService = intelligenceService;
+        this.aiAnomalyDetectionService = aiAnomalyDetectionService;
+        this.reorderRecommendationService = reorderRecommendationService;
     }
 
     @GetMapping("/dashboard")
@@ -61,6 +65,24 @@ public class IntelligenceController {
         if (tenantId == null) return ResponseEntity.status(403).build();
 
         return ResponseEntity.ok(intelligenceService.calculateInventoryHealth(tenantId));
+    }
+
+    @GetMapping("/anomalies")
+    public ResponseEntity<List<Map<String, Object>>> getAnomalies() {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        return ResponseEntity.ok(aiAnomalyDetectionService.detectAnomalies(tenantId));
+    }
+
+    @GetMapping("/reorder-recommendations")
+    public ResponseEntity<List<Map<String, Object>>> getReorderRecommendations() {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        return ResponseEntity.ok(reorderRecommendationService.generateRecommendations(tenantId));
+    }
+
+    @PostMapping("/reorder-recommendations/generate")
+    public ResponseEntity<List<Map<String, Object>>> triggerReorderRecommendations() {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        return ResponseEntity.ok(reorderRecommendationService.generateRecommendations(tenantId));
     }
 
     @PostMapping("/ask")
