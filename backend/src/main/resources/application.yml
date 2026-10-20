@@ -24,5 +24,10 @@ jwt:
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174}
 
+ml:
+  service:
+    url: ${ML_SERVICE_URL:http://localhost:8000}
+
 server:
   port: 8080
+
