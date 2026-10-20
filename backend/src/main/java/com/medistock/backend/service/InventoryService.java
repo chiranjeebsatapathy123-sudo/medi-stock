@@ -61,10 +61,10 @@ public class InventoryService {
 
         int totalAvailable = eligibleBatches.stream().mapToInt(Batch::getCurrentQuantity).sum();
         if (totalAvailable < quantityToIssue) {
-            throw new IllegalStateException("Insufficient stock. Requested: " + quantityToIssue + ", Available: " + totalAvailable);
+            throw new IllegalStateException("Insufficient eligible stock. Requested: " + quantityToIssue + ", Available: " + totalAvailable);
         }
 
-        User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
+        User user = (userRepository != null && userId != null) ? userRepository.findById(userId).orElse(null) : null;
         int remaining = quantityToIssue;
         List<Map<String, Object>> deductions = new ArrayList<>();
 
@@ -102,7 +102,7 @@ public class InventoryService {
             deductionInfo.put("batchNumber", batch.getBatchNumber());
             deductionInfo.put("quantityDeducted", deduct);
             deductionInfo.put("remainingInBatch", newQuantity);
-            deductionInfo.put("transactionId", savedTx.getTransactionId());
+            deductionInfo.put("transactionId", (savedTx != null && savedTx.getTransactionId() != null) ? savedTx.getTransactionId() : tx.getTransactionId());
             deductions.add(deductionInfo);
 
             remaining -= deduct;
@@ -179,7 +179,7 @@ public class InventoryService {
 
         Batch savedBatch = batchRepository.save(batch);
 
-        User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
+        User user = (userRepository != null && userId != null) ? userRepository.findById(userId).orElse(null) : null;
 
         // Record InventoryTransaction
         InventoryTransaction tx = new InventoryTransaction();
@@ -200,7 +200,7 @@ public class InventoryService {
 
         Map<String, Object> result = new HashMap<>();
         result.put("status", "SUCCESS");
-        result.put("transactionId", savedTx.getTransactionId());
+        result.put("transactionId", (savedTx != null && savedTx.getTransactionId() != null) ? savedTx.getTransactionId() : tx.getTransactionId());
         result.put("batchId", savedBatch.getId());
         result.put("batchNumber", savedBatch.getBatchNumber());
         result.put("quantityReceived", quantity);
@@ -231,7 +231,7 @@ public class InventoryService {
         batch.setStorageLocationId(destinationLocationId);
         batchRepository.save(batch);
 
-        User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
+        User user = (userRepository != null && userId != null) ? userRepository.findById(userId).orElse(null) : null;
 
         InventoryTransaction tx = new InventoryTransaction();
         if (batch.getMedicine() != null) {
@@ -253,7 +253,7 @@ public class InventoryService {
 
         Map<String, Object> result = new HashMap<>();
         result.put("status", "SUCCESS");
-        result.put("transactionId", savedTx.getTransactionId());
+        result.put("transactionId", (savedTx != null && savedTx.getTransactionId() != null) ? savedTx.getTransactionId() : tx.getTransactionId());
         result.put("batchId", batch.getId());
         result.put("quantityTransferred", quantity);
         result.put("destinationLocationId", destinationLocationId);
@@ -283,7 +283,7 @@ public class InventoryService {
         }
         batchRepository.save(batch);
 
-        User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
+        User user = (userRepository != null && userId != null) ? userRepository.findById(userId).orElse(null) : null;
 
         InventoryTransaction tx = new InventoryTransaction();
         if (batch.getMedicine() != null) {
@@ -303,7 +303,7 @@ public class InventoryService {
 
         Map<String, Object> result = new HashMap<>();
         result.put("status", "SUCCESS");
-        result.put("transactionId", savedTx.getTransactionId());
+        result.put("transactionId", (savedTx != null && savedTx.getTransactionId() != null) ? savedTx.getTransactionId() : tx.getTransactionId());
         result.put("batchId", batch.getId());
         result.put("previousQuantity", previousQty);
         result.put("newQuantity", newQuantity);

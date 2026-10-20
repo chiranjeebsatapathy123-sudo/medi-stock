@@ -27,6 +27,9 @@ public class InventoryServiceTest {
     @Mock
     private InventoryTransactionRepository transactionRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private InventoryService inventoryService;
 
