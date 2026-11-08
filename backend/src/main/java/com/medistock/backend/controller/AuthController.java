@@ -24,12 +24,14 @@ public class AuthController {
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
     private final OrganizationRepository orgRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtUtils jwtUtils, UserRepository userRepository, OrganizationRepository orgRepository) {
+    public AuthController(AuthenticationManager authenticationManager, JwtUtils jwtUtils, UserRepository userRepository, OrganizationRepository orgRepository, org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
         this.userRepository = userRepository;
         this.orgRepository = orgRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/login")
@@ -77,7 +79,7 @@ public class AuthController {
         User user = new User();
         user.setName(request.get("name"));
         user.setEmail(request.get("email"));
-        user.setPasswordHash(request.get("password")); // using plain for demo, SecurityConfig is NoOpPasswordEncoder
+        user.setPasswordHash(passwordEncoder.encode(request.get("password")));
         user.setRole(Role.ORGANIZATION_ADMIN);
         user.setOrganization(org);
         userRepository.save(user);

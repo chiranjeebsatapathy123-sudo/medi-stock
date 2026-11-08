@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UUID> {
     List<PurchaseOrder> findByOrganizationId(UUID organizationId);
     Optional<PurchaseOrder> findByIdAndOrganizationId(UUID id, UUID organizationId);
+    Optional<PurchaseOrder> findByOrganizationIdAndPoNumber(UUID organizationId, String poNumber);
 }

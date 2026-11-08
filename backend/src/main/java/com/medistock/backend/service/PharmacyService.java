@@ -23,17 +23,26 @@ public class PharmacyService {
     private final PharmacyAlertRepository alertRepository;
     private final BatchRepository batchRepository;
     private final InventoryTransactionRepository transactionRepository;
+    private final com.medistock.backend.repository.MedicineRepository medicineRepository;
+    private final AuditService auditService;
+    private final CdssService cdssService;
 
     public PharmacyService(MedicationOrderRepository orderRepository,
                            DispensingRecordRepository dispensingRepository,
                            PharmacyAlertRepository alertRepository,
                            BatchRepository batchRepository,
-                           InventoryTransactionRepository transactionRepository) {
+                           InventoryTransactionRepository transactionRepository,
+                           com.medistock.backend.repository.MedicineRepository medicineRepository,
+                           AuditService auditService,
+                           CdssService cdssService) {
         this.orderRepository = orderRepository;
         this.dispensingRepository = dispensingRepository;
         this.alertRepository = alertRepository;
         this.batchRepository = batchRepository;
         this.transactionRepository = transactionRepository;
+        this.medicineRepository = medicineRepository;
+        this.auditService = auditService;
+        this.cdssService = cdssService;
     }
 
     public List<MedicationOrder> getOrders(UUID organizationId) {
@@ -58,11 +67,44 @@ public class PharmacyService {
         return orderRepository.save(order);
     }
 
+    public com.medistock.backend.dto.cdss.CdssEvaluationResult evaluateOrderCdss(UUID orderId, UUID organizationId) {
+        MedicationOrder order = getOrder(orderId, organizationId);
+        return cdssService.evaluateOrder(order, organizationId);
+    }
+
     @Transactional
     public MedicationOrder reviewOrder(UUID id, UUID organizationId, UUID userId, String action) {
+        return reviewOrder(id, organizationId, userId, action, null);
+    }
+
+    @Transactional
+    public MedicationOrder reviewOrder(UUID id, UUID organizationId, UUID userId, String action, String overrideReason) {
         MedicationOrder order = getOrder(id, organizationId);
         
         if ("APPROVE".equalsIgnoreCase(action)) {
+            // Run CDSS Safety Checks
+            com.medistock.backend.dto.cdss.CdssEvaluationResult cdss = cdssService.evaluateOrder(order, organizationId);
+            if (!cdss.isSafeToDispense()) {
+                if (overrideReason == null || overrideReason.trim().isEmpty()) {
+                    throw new IllegalStateException("CDSS Contraindication Detected: " +
+                            cdss.getAlerts().stream().filter(a -> "CONTRAINDICATED".equalsIgnoreCase(a.getSeverity()))
+                                    .map(com.medistock.backend.dto.cdss.CdssAlert::getDescription)
+                                    .findFirst().orElse("High risk clinical interaction") +
+                            ". Clinical override justification is mandatory to proceed.");
+                }
+
+                // Record clinical override in order notes and audit log
+                order.setNotes((order.getNotes() != null ? order.getNotes() + "\n" : "") +
+                        "[CDSS CLINICAL OVERRIDE]: " + overrideReason.trim());
+                try {
+                    auditService.recordAudit(
+                            organizationId, userId, "Clinical Pharmacist", "PHARMACIST",
+                            "CDSS_CLINICAL_OVERRIDE", "MEDICATION_ORDER", order.getId(),
+                            null, "overrideReason=" + overrideReason.trim(),
+                            "Pharmacist clinical override for order " + order.getOrderNumber()
+                    );
+                } catch (Exception ignored) {}
+            }
             order.setStatus("APPROVED");
         } else if ("REJECT".equalsIgnoreCase(action)) {
             order.setStatus("REJECTED");
@@ -244,5 +286,48 @@ public class PharmacyService {
         orderRepository.save(order);
         
         return dispensingRepository.save(record);
+    }
+
+    public List<java.util.Map<String, Object>> getControlledSubstances(UUID organizationId) {
+        List<com.medistock.backend.entity.Medicine> medicines = medicineRepository.findByOrganizationId(organizationId);
+        List<Batch> allBatches = batchRepository.findByMedicineOrganizationId(organizationId);
+
+        List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+        for (com.medistock.backend.entity.Medicine m : medicines) {
+            boolean isControlled = m.isControlledMedicine() ||
+                    (m.getDeaSchedule() != null && !"NON_CONTROLLED".equalsIgnoreCase(m.getDeaSchedule()));
+
+            if (isControlled) {
+                List<Batch> medBatches = allBatches.stream()
+                        .filter(b -> b.getMedicine() != null && b.getMedicine().getId().equals(m.getId()))
+                        .filter(b -> "ACTIVE".equalsIgnoreCase(b.getStatus()))
+                        .collect(java.util.stream.Collectors.toList());
+
+                int totalStock = medBatches.stream().mapToInt(Batch::getCurrentQuantity).sum();
+
+                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                map.put("id", m.getId());
+                map.put("medicineCode", m.getMedicineCode());
+                map.put("genericName", m.getGenericName());
+                map.put("brandName", m.getBrandName());
+                map.put("dosageForm", m.getDosageForm());
+                map.put("strength", m.getStrength());
+                map.put("deaSchedule", m.getDeaSchedule() != null ? m.getDeaSchedule() : "SCHEDULE_II");
+                map.put("totalStock", totalStock);
+                map.put("batchCount", medBatches.size());
+                map.put("requiresDualVerification", true);
+                map.put("batches", medBatches);
+                result.add(map);
+            }
+        }
+        return result;
+    }
+
+    public List<InventoryTransaction> getControlledSubstancesLedger(UUID organizationId) {
+        return transactionRepository.findByOrganizationIdOrderByTimestampDesc(organizationId).stream()
+                .filter(tx -> tx.getMedicine() != null && (tx.getMedicine().isControlledMedicine() ||
+                        (tx.getMedicine().getDeaSchedule() != null && !"NON_CONTROLLED".equalsIgnoreCase(tx.getMedicine().getDeaSchedule()))))
+                .limit(100)
+                .collect(java.util.stream.Collectors.toList());
     }
 }

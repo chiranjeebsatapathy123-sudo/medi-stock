@@ -15,4 +15,14 @@ public interface BatchRepository extends JpaRepository<Batch, UUID> {
     
     @org.springframework.data.jpa.repository.Query("SELECT b FROM Batch b WHERE b.medicine.id = :medicineId AND b.medicine.organization.id = :orgId AND b.currentQuantity > 0 AND b.status = 'ACTIVE' AND b.quarantine = false AND b.recall = false AND (b.expiryDate IS NULL OR b.expiryDate >= :minExpiry) ORDER BY b.expiryDate ASC")
     java.util.List<Batch> findEligibleBatchesForFEFO(@org.springframework.data.repository.query.Param("medicineId") UUID medicineId, @org.springframework.data.repository.query.Param("orgId") UUID orgId, @org.springframework.data.repository.query.Param("minExpiry") java.time.LocalDate minExpiry);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT b FROM Batch b WHERE b.medicine.id = :medicineId AND b.currentQuantity > 0 AND b.status = 'ACTIVE' AND b.quarantine = false AND b.recall = false AND (b.expiryDate IS NULL OR b.expiryDate >= :minExpiry) ORDER BY b.expiryDate ASC")
+    java.util.List<Batch> findEligibleBatchesForFEFOWithLock(@org.springframework.data.repository.query.Param("medicineId") UUID medicineId, @org.springframework.data.repository.query.Param("minExpiry") java.time.LocalDate minExpiry);
+
+    Optional<Batch> findFirstByMedicineIdAndBatchNumberIgnoreCase(UUID medicineId, String batchNumber);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT b FROM Batch b WHERE b.id = :id")
+    Optional<Batch> findByIdWithLock(@org.springframework.data.repository.query.Param("id") UUID id);
 }

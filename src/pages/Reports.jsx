@@ -5,6 +5,55 @@ import { Modal } from "../components/ui";
 export function Reports({ setToast }) {
   const [showBuilder, setShowBuilder] = useState(false);
 
+  const handleExportCsv = (title) => {
+    let rows = [];
+    let filename = title.toLowerCase().replace(/\s+/g, '_') + '.csv';
+
+    if (title.includes("Controlled")) {
+      rows = [
+        ["Timestamp", "Medication", "DEA_Schedule", "Lot_Number", "Balance_Units", "Vault_Location", "Authorized_Pharmacist", "Integrity_Hash"],
+        [new Date().toISOString(), "Morphine Sulfate 15mg/mL", "Schedule II", "MPH-2027-C2", "110", "Biometric Safe Vault", "Dr. Robert Harrison, MD", "e3b0c44298fc1c149afbf4c8996fb924"],
+        [new Date().toISOString(), "Fentanyl Citrate 100mcg/2mL", "Schedule II", "FNT-2027-F1", "110", "Biometric Safe Vault", "Dr. Elena Rostova, MD", "a591a6d40bf420404a011733cfb7b190"],
+        [new Date().toISOString(), "Lorazepam 1mg", "Schedule IV", "LOR-2027-A1", "340", "Secured Cabinet Bay 3", "Chief Pharmacist", "2c26b46b68ffc68ff99b453c1d304134"]
+      ];
+    } else if (title.includes("Expiry")) {
+      rows = [
+        ["Medication", "Brand", "Lot_Number", "Expiry_Date", "Days_Remaining", "Quantity", "FEFO_Priority", "Status"],
+        ["Ceftriaxone Sodium 1g", "Rocephin", "LOT-REC-2026-99", "2026-08-15", "45", "100", "LOCKED", "RECALLED"],
+        ["Insulin Glargine 100 U/mL", "Lantus", "INS-2026-EXC", "2026-09-30", "52", "150", "LOCKED", "QUARANTINED"],
+        ["Amoxicillin Trihydrate 500mg", "Amoxil", "AMX-2026-N1", "2026-11-20", "104", "850", "FEFO #1", "ACTIVE"],
+        ["Epinephrine 0.3mg", "EpiPen", "EPI-2026-E1", "2026-12-10", "124", "42", "FEFO #2", "ACTIVE"]
+      ];
+    } else if (title.includes("Cold Chain")) {
+      rows = [
+        ["Device_ID", "Storage_Area", "Min_Target_C", "Max_Target_C", "Logged_Temp_C", "Excursion_Duration_Mins", "Incident_State", "Resolution"],
+        ["SenseNode-Alpha", "Refrigeration Unit 1", "2.0", "8.0", "10.4", "145", "QUARANTINED", "Batch INS-2026-EXC isolated from dispensing"],
+        ["SenseNode-Beta", "Vaccine Ultra-Freezer", "-25.0", "-15.0", "-19.4", "0", "COMPLIANT", "Nominal operation"],
+        ["SenseNode-Vault", "C-II Biometric Safe", "15.0", "25.0", "21.2", "0", "COMPLIANT", "Nominal operation"]
+      ];
+    } else {
+      rows = [
+        ["Medication_Code", "Generic_Name", "Brand", "Category", "Stock_Units", "Unit_Cost_USD", "Total_Valuation_USD"],
+        ["MED-AMX-500", "Amoxicillin Trihydrate 500mg", "Amoxil", "Antibiotic", "850", "2.75", "2337.50"],
+        ["MED-CEF-1G", "Ceftriaxone Sodium 1g", "Rocephin", "Antibiotic", "400", "14.50", "5800.00"],
+        ["MED-INS-100", "Insulin Glargine 100 U/mL", "Lantus", "Endocrine", "250", "34.00", "8500.00"],
+        ["MED-WRF-5MG", "Warfarin Sodium 5mg", "Coumadin", "Cardiovascular", "800", "4.20", "3360.00"],
+        ["MED-MPH-15", "Morphine Sulfate 15mg/mL", "Infumorph", "Controlled", "110", "18.50", "2035.00"]
+      ];
+    }
+
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (setToast) setToast(`Exported ${title} to ${filename}`);
+  };
+
   const reports = [
     { title: "Monthly Stock Valuation", desc: "Current value of all inventory assets", type: "Financial", icon: BarChart3, schedule: "Monthly" },
     { title: "Expiry Risk Audit", desc: "Items expiring within 90 days", type: "Compliance", icon: Clock3, schedule: "Weekly" },
@@ -56,7 +105,7 @@ export function Reports({ setToast }) {
              <div className="text-[10px] text-slate-500 mt-2 flex items-center gap-1"><Calendar size={10}/> Schedule: {r.schedule}</div>
            </div>
            <div className="flex flex-col gap-2 shrink-0">
-             <button className="secondary text-xs py-1 px-2 flex items-center gap-1" onClick={() => setToast && setToast(`Generating ${r.title}...`)}><Download size={14}/> CSV</button>
+             <button className="secondary text-xs py-1 px-2 flex items-center gap-1" onClick={() => handleExportCsv(r.title)}><Download size={14}/> CSV</button>
              <button className="secondary text-xs py-1 px-2 flex items-center gap-1" onClick={() => setToast && setToast(`Sending ${r.title}...`)}><Send size={14}/> Send</button>
            </div>
         </div>

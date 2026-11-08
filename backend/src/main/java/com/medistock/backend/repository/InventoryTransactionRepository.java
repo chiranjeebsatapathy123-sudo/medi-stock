@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface InventoryTransactionRepository extends JpaRepository<InventoryTransaction, UUID> {
     List<InventoryTransaction> findByOrganizationId(UUID organizationId);
+    List<InventoryTransaction> findByOrganizationIdOrderByTimestampDesc(UUID organizationId);
 }

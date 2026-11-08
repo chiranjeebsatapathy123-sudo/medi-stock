@@ -31,6 +31,8 @@ public class Medicine {
     
     private boolean prescriptionRequired;
     private boolean controlledMedicine;
+    private String deaSchedule; // e.g. "SCHEDULE_II", "SCHEDULE_III", "SCHEDULE_IV", "NON_CONTROLLED"
+    private String gtin;
     private boolean temperatureSensitive;
     
     private String storageRequirement;

@@ -62,7 +62,7 @@ public class IntelligenceService {
         double overallScore = (categoryCoverage + supplierCoverage + 100.0) / 3.0; // Simplistic score
         
         Map<String, Object> result = new HashMap<>();
-        result.put("score", Math.round(overallScore));
+        result.put("score", (int) Math.round(overallScore));
         
         Map<String, Object> coverage = new HashMap<>();
         coverage.put("categoryCoverage", Math.round(categoryCoverage) + "%");
@@ -190,11 +190,19 @@ public class IntelligenceService {
         Map<String, Object> stockoutRisk = calculateStockoutRisk(tenantId);
         Map<String, Object> dataQuality = calculateDataQuality(tenantId);
         
-        int dqScore = (int) dataQuality.get("score");
+        Object dqScoreObj = dataQuality.get("score");
+        int dqScore = (dqScoreObj instanceof Number n) ? n.intValue() : 100;
         
-        Map<String, Integer> soSummary = (Map<String, Integer>) stockoutRisk.get("summary");
-        int totalItems = soSummary.values().stream().mapToInt(Integer::intValue).sum();
-        int safeItems = soSummary.getOrDefault("LOW", 0);
+        Map<?, ?> soSummary = (Map<?, ?>) stockoutRisk.get("summary");
+        int totalItems = 0;
+        int safeItems = 0;
+        if (soSummary != null) {
+            for (Object val : soSummary.values()) {
+                if (val instanceof Number n) totalItems += n.intValue();
+            }
+            Object lowVal = soSummary.get("LOW");
+            if (lowVal instanceof Number n) safeItems = n.intValue();
+        }
         
         double availabilityScore = totalItems > 0 ? (safeItems / (double) totalItems) * 100 : 100.0;
         

@@ -24,6 +24,14 @@ public class Invoice {
     @ManyToOne
     @JoinColumn(name = "patient_id")
     private Patient patient;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "purchase_order_id")
+    private PurchaseOrder purchaseOrder;
     
     private String invoiceNumber;
     private BigDecimal amount;
@@ -31,6 +39,7 @@ public class Invoice {
     private ZonedDateTime issuedDate;
     private ZonedDateTime dueDate;
     private ZonedDateTime paidDate;
+    @Column(length = 4000)
     private String notes;
     
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)

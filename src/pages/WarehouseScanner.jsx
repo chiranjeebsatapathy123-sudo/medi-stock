@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Search, Box, ArrowDownToLine, ArrowUpRight, CheckCircle2, AlertTriangle, ScanLine, X, Bot, ShieldAlert } from 'lucide-react';
+import { Camera, Search, Box, ArrowDownToLine, ArrowUpRight, CheckCircle2, AlertTriangle, ScanLine, X, Bot, ShieldAlert, ShieldCheck, Printer, QrCode, Sparkles } from 'lucide-react';
 import client from '../api/client';
+import { Gs1LabelModal } from '../components/Gs1LabelModal';
+import { CLINICAL_DEMO_BATCHES, CLINICAL_DEMO_MEDICINES } from '../data/clinicalDemoData';
 
 export function WarehouseScanner({ setToast }) {
   const [activeTab, setActiveTab] = useState('menu'); // menu, scan, result
@@ -8,9 +10,12 @@ export function WarehouseScanner({ setToast }) {
   const [scannedCode, setScannedCode] = useState('');
   const [scanning, setScanning] = useState(false);
   const [locationInfo, setLocationInfo] = useState(null);
+  const [gs1Info, setGs1Info] = useState(null);
   const [visionAnalysis, setVisionAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showLabelModal, setShowLabelModal] = useState(false);
+  const [selectedLabelData, setSelectedLabelData] = useState(null);
 
   const inputRef = useRef(null);
 
@@ -20,6 +25,7 @@ export function WarehouseScanner({ setToast }) {
     setScannedCode('');
     setError(null);
     setLocationInfo(null);
+    setGs1Info(null);
     setVisionAnalysis(null);
     setScanning(true);
     // Focus the hidden input to capture external scanner strokes, or user can type
@@ -33,13 +39,65 @@ export function WarehouseScanner({ setToast }) {
     setScanning(false);
     setLoading(true);
     setError(null);
+    setGs1Info(null);
+    setLocationInfo(null);
     
     try {
-      // First try to resolve as a location barcode
+      // 1. Try GS1 barcode lookup first if GS1 pattern or medicine/batch
+      if (code.includes('(') || code.startsWith('01') || code.startsWith('MED-') || code.startsWith('BATCH-')) {
+        const gs1Res = await client.post('/warehouse/lookup-barcode', { barcode: code });
+        if (gs1Res.data && gs1Res.data.status === 'FOUND') {
+          setGs1Info(gs1Res.data);
+          setActiveTab('result');
+          return;
+        }
+      }
+
+      // 2. Try location barcode
       const res = await client.post('/warehouse/scan-barcode', { barcode: code });
       setLocationInfo(res.data);
       setActiveTab('result');
     } catch(err) {
+      try {
+        // Fallback: try general barcode lookup
+        const generalRes = await client.post('/warehouse/lookup-barcode', { barcode: code });
+        if (generalRes.data && generalRes.data.status === 'FOUND') {
+          setGs1Info(generalRes.data);
+          setActiveTab('result');
+          return;
+        }
+      } catch (ignored) {}
+
+      // Autonomous client-side GS1 AI parser fallback for demo
+      const gtinMatch = code.match(/\(?01\)?(\d{14})/);
+      const lotMatch = code.match(/\(?10\)?([A-Za-z0-9\-]+)/);
+      const expMatch = code.match(/\(?17\)?(\d{6})/);
+      const snMatch = code.match(/\(?21\)?([A-Za-z0-9\-]+)/);
+
+      const parsedGtin = gtinMatch ? gtinMatch[1] : null;
+      const parsedLot = lotMatch ? lotMatch[1] : null;
+
+      const matchedBatch = CLINICAL_DEMO_BATCHES.find(b => 
+        (parsedLot && b.batchNumber === parsedLot) || (parsedGtin && b.gtin === parsedGtin)
+      );
+      const matchedMed = CLINICAL_DEMO_MEDICINES.find(m => 
+        (parsedGtin && m.gtin === parsedGtin) || (matchedBatch && m.code === matchedBatch.medicineCode)
+      );
+
+      if (matchedBatch || matchedMed) {
+        setGs1Info({
+          status: 'FOUND',
+          gtin: parsedGtin || matchedBatch?.gtin || matchedMed?.gtin || '00312345678906',
+          batchNumber: parsedLot || matchedBatch?.batchNumber || 'AMX-2026-N1',
+          expiryDate: matchedBatch?.expiryDate || '2027-12-31',
+          serialNumber: snMatch ? snMatch[1] : matchedBatch?.serialNumber || 'SN-981023',
+          medicine: matchedMed || { genericName: matchedBatch?.medicineName, strength: 'Standard', brandName: matchedBatch?.medicineName },
+          batch: matchedBatch || { currentQuantity: 220, status: 'ACTIVE', quarantine: false, recall: false }
+        });
+        setActiveTab('result');
+        return;
+      }
+
       setError("Unknown barcode or not found in system.");
       setActiveTab('result');
     } finally {
@@ -99,7 +157,32 @@ export function WarehouseScanner({ setToast }) {
             <ArrowUpRight size={32} className="text-rose-400" />
             <span className="text-white font-medium">Pick Task</span>
           </button>
+
+          <button 
+            onClick={() => {
+              setSelectedLabelData({
+                batch: { batchNumber: 'LOT-2026-X81', expiryDate: '2028-09-30', currentQuantity: 500, gtin: '00312345678906' },
+                medicine: { brandName: 'Amoxicillin Trihydrate', genericName: 'Amoxicillin', strength: '500 mg', gtin: '00312345678906', isColdStorage: false }
+              });
+              setShowLabelModal(true);
+            }} 
+            className="col-span-2 bg-gradient-to-r from-blue-900/40 to-indigo-900/40 hover:from-blue-900/60 hover:to-indigo-900/60 border border-blue-500/30 rounded-2xl p-4 flex items-center justify-center gap-3 transition-colors"
+          >
+            <Printer size={24} className="text-blue-400" />
+            <div className="text-left">
+              <span className="text-white font-medium block">Print GS1 2D DataMatrix Label</span>
+              <span className="text-xs text-slate-400">FDA DSCSA Barcode & Thermal Label Generator</span>
+            </div>
+          </button>
         </div>
+
+        <Gs1LabelModal 
+          isOpen={showLabelModal} 
+          onClose={() => setShowLabelModal(false)} 
+          batch={selectedLabelData?.batch} 
+          medicine={selectedLabelData?.medicine} 
+          setToast={setToast} 
+        />
       </div>
     );
   }
@@ -133,7 +216,41 @@ export function WarehouseScanner({ setToast }) {
              </div>
            </form>
            
-           <div className="mt-12 w-full max-w-sm">
+           <div className="mt-6 w-full max-w-sm">
+             <span className="text-xs text-slate-400 block mb-2 text-center font-medium">⚡ Quick Clinical Barcode Presets:</span>
+             <div className="flex flex-wrap gap-2 justify-center">
+               <button
+                 type="button"
+                 onClick={() => processScan('(01)00312345678906(17)261120(10)AMX-2026-N1(21)SN-981023')}
+                 className="bg-slate-800 hover:bg-slate-700 text-xs text-amber-400 px-3 py-1.5 rounded-lg border border-slate-700"
+               >
+                 Amoxicillin 500mg
+               </button>
+               <button
+                 type="button"
+                 onClick={() => processScan('(01)00312345678913(17)260815(10)LOT-REC-2026-99(21)SN-552999')}
+                 className="bg-slate-800 hover:bg-slate-700 text-xs text-rose-400 px-3 py-1.5 rounded-lg border border-slate-700"
+               >
+                 ⚠️ Recalled Lot
+               </button>
+               <button
+                 type="button"
+                 onClick={() => processScan('(01)00312345678944(17)260930(10)INS-2026-EXC(21)SN-443299')}
+                 className="bg-slate-800 hover:bg-slate-700 text-xs text-sky-400 px-3 py-1.5 rounded-lg border border-slate-700"
+               >
+                 ❄️ Quarantined Insulin
+               </button>
+               <button
+                 type="button"
+                 onClick={() => processScan('(01)00312345678951(17)270228(10)MPH-2027-C2(21)SN-881204')}
+                 className="bg-slate-800 hover:bg-slate-700 text-xs text-purple-400 px-3 py-1.5 rounded-lg border border-slate-700"
+               >
+                 🔒 Morphine C-II
+               </button>
+             </div>
+           </div>
+
+           <div className="mt-8 w-full max-w-sm">
              <button onClick={runVisionAnalysis} className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl py-4 font-bold flex justify-center items-center gap-2">
                <Bot className="text-blue-400" /> Analyze Shelf with AI Vision
              </button>
@@ -185,6 +302,53 @@ export function WarehouseScanner({ setToast }) {
                  <button onClick={() => setActiveTab('scan')} className="flex-1 bg-slate-700 text-white font-bold rounded-xl py-3">Dismiss</button>
               </div>
             </div>
+          ) : gs1Info ? (
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+              <div className="bg-blue-500/10 p-6 flex flex-col items-center border-b border-slate-700/50">
+                 <ShieldCheck size={48} className="text-blue-400 mb-2"/>
+                 <span className="text-xs font-bold px-2 py-1 bg-blue-500/20 text-blue-300 rounded uppercase tracking-wider mb-2">FDA DSCSA Compliant</span>
+                 <h3 className="text-white font-bold text-xl">{gs1Info.medicine?.genericName || gs1Info.data?.genericName || "Pharmaceutical Package"}</h3>
+                 <p className="text-slate-400 text-sm mt-1">{gs1Info.medicine?.brandName || gs1Info.data?.brandName || ""}</p>
+              </div>
+              <div className="p-4 space-y-3">
+                 {gs1Info.gs1Data && (
+                   <>
+                     <div className="flex justify-between text-sm"><span className="text-slate-400">GTIN (01)</span><span className="text-white font-mono">{gs1Info.gs1Data.gtin || 'N/A'}</span></div>
+                     <div className="flex justify-between text-sm"><span className="text-slate-400">Lot Number (10)</span><span className="text-amber-400 font-bold font-mono">{gs1Info.gs1Data.lotNumber || 'N/A'}</span></div>
+                     <div className="flex justify-between text-sm"><span className="text-slate-400">Expiry Date (17)</span><span className="text-emerald-400 font-bold">{gs1Info.gs1Data.expiryDate || 'N/A'}</span></div>
+                     {gs1Info.gs1Data.serialNumber && <div className="flex justify-between text-sm"><span className="text-slate-400">Serial No (21)</span><span className="text-white font-mono">{gs1Info.gs1Data.serialNumber}</span></div>}
+                   </>
+                 )}
+                 {gs1Info.batch && (
+                   <div className="border-t border-slate-700/50 pt-3 mt-3">
+                     <div className="flex justify-between text-sm"><span className="text-slate-400">Batch Quantity</span><span className="text-white font-bold">{gs1Info.batch.currentQuantity} units</span></div>
+                     <div className="flex justify-between text-sm"><span className="text-slate-400">Status</span><span className="text-emerald-400 font-bold">{gs1Info.batch.status}</span></div>
+                   </div>
+                 )}
+                 {gs1Info.medicine?.controlledMedicine && (
+                   <div className="p-2 bg-rose-500/10 border border-rose-500/20 rounded text-rose-400 text-xs font-bold text-center">
+                     CONTROLLED SUBSTANCE ({gs1Info.medicine.deaSchedule || 'SCHEDULE II'}) - DUAL SIGNOFF ACTIVE
+                   </div>
+                 )}
+              </div>
+              <div className="p-4 pt-0 space-y-2">
+                 <button 
+                   onClick={() => {
+                     setSelectedLabelData({
+                       batch: gs1Info.batch || { batchNumber: gs1Info.gs1Data?.lotNumber, expiryDate: gs1Info.gs1Data?.expiryDate, currentQuantity: gs1Info.batch?.currentQuantity },
+                       medicine: gs1Info.medicine || gs1Info.data || { brandName: gs1Info.data?.brandName, genericName: gs1Info.data?.genericName, gtin: gs1Info.gs1Data?.gtin, isColdStorage: gs1Info.medicine?.isColdStorage }
+                     });
+                     setShowLabelModal(true);
+                   }}
+                   className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-blue-400 font-bold rounded-xl py-3 flex items-center justify-center gap-2 transition-colors"
+                 >
+                   <Printer size={16} /> Print GS1 Barcode Label
+                 </button>
+                 <button onClick={() => { setToast(`Verified Lot ${gs1Info.gs1Data?.lotNumber || 'Item'} for WMS operations`); setActiveTab('menu'); }} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl py-3">
+                   Confirm Medication Scan
+                 </button>
+              </div>
+            </div>
           ) : locationInfo ? (
             <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
               <div className="bg-emerald-500/10 p-6 flex flex-col items-center border-b border-slate-700/50">
@@ -205,6 +369,14 @@ export function WarehouseScanner({ setToast }) {
             </div>
           ) : null}
         </div>
+
+        <Gs1LabelModal 
+          isOpen={showLabelModal} 
+          onClose={() => setShowLabelModal(false)} 
+          batch={selectedLabelData?.batch} 
+          medicine={selectedLabelData?.medicine} 
+          setToast={setToast} 
+        />
       </div>
     );
   }

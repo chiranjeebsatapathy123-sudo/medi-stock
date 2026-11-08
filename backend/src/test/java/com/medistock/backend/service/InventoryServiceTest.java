@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -91,5 +92,32 @@ public class InventoryServiceTest {
         });
         
         assertTrue(exception.getMessage().contains("Insufficient eligible stock"));
+    }
+
+    @Test
+    void testPartialTransferLotSplitting() {
+        UUID batchId = UUID.randomUUID();
+        UUID sourceLoc = UUID.randomUUID();
+        UUID destLoc = UUID.randomUUID();
+
+        Medicine medicine = new Medicine();
+        medicine.setId(UUID.randomUUID());
+
+        Batch sourceBatch = new Batch();
+        sourceBatch.setId(batchId);
+        sourceBatch.setMedicine(medicine);
+        sourceBatch.setBatchNumber("LOT-2026-X1");
+        sourceBatch.setCurrentQuantity(100);
+        sourceBatch.setStorageLocationId(sourceLoc);
+
+        when(batchRepository.findById(batchId)).thenReturn(Optional.of(sourceBatch));
+        when(batchRepository.save(any(Batch.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Map<String, Object> result = inventoryService.transferStock(batchId, sourceLoc, destLoc, 35, "Splitting to floor rack", UUID.randomUUID(), null);
+
+        assertEquals("SUCCESS", result.get("status"));
+        assertEquals(65, sourceBatch.getCurrentQuantity(), "Source batch should have 65 remaining");
+        verify(batchRepository, times(2)).save(any(Batch.class)); // 1 for reduced source, 1 for new split batch
+        verify(transactionRepository, times(1)).save(any(InventoryTransaction.class));
     }
 }

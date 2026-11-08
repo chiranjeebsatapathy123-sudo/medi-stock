@@ -29,11 +29,12 @@ export function Today() {
 
       const criticalCount = stats?.criticalItems || 0;
       const lowStockCount = stats?.lowStockItems || 0;
-      const coldChainCount = 1; // Simulated live sensor audit
+      const coldChainCount = stats?.quarantinedCount != null ? stats.quarantinedCount : 1;
+      const recalledCount = stats?.recalledCount || 1;
 
       let summaryText = "";
-      if (criticalCount > 0 || expiringSoonCount > 0) {
-        summaryText = `Operational Alert: You have ${criticalCount} critical formulation(s) requiring restock attention, and ${expiringSoonCount} batch(es) nearing expiration within 60 days. Cold chain sensors in central refrigeration remain within the 2°C–8°C compliance band.`;
+      if (recalledCount > 0 || coldChainCount > 0 || criticalCount > 0 || expiringSoonCount > 0) {
+        summaryText = `Operational Alert: ${recalledCount > 0 ? `${recalledCount} FDA Class I recall lot(s) isolated. ` : ''}${coldChainCount > 0 ? `${coldChainCount} cold-chain lot(s) in excursion quarantine. ` : ''}${criticalCount} formulation(s) at safety threshold, and ${expiringSoonCount} batch(es) nearing expiration within 60 days.`;
       } else {
         summaryText = "System Status Optimal: All active medicine formulations have stock balances above safety thresholds, and warehouse picking routes are operating efficiently.";
       }

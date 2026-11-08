@@ -42,10 +42,13 @@ import { IntelligenceCenter } from "./pages/IntelligenceCenter";
 import { WarehouseScanner } from "./pages/WarehouseScanner";
 import { Patients } from "./pages/Patients";
 import { Invoices } from "./pages/Invoices";
+import { Reports } from "./pages/Reports";
+import { UsersRoles } from "./pages/UsersRoles";
 import { LandingPage } from "./pages/LandingPage";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { CommandPalette } from "./components/CommandPalette";
+import { DemoSandboxBar } from "./components/DemoSandboxBar";
 
 
 
@@ -61,13 +64,13 @@ function Sidebar({ collapsed, setCollapsed, onLogout }) {
   const active = getActiveName(activePath);
 
   const groups = [
-    { title: "Core", items: [["Control Tower", Radio, "/"], ["Command Center", LayoutDashboard, "/command-center"], ["Intelligence Center", BrainCircuit, "/intelligence"]] },
+    { title: "Core", items: [["Control Tower", Radio, "/"], ["Command Center", LayoutDashboard, "/command-center"], ["Today", Clock3, "/today"], ["Intelligence Center", BrainCircuit, "/intelligence"]] },
     { title: "Inventory", items: [["Inventory", Boxes, "/inventory"], ["Batches & Expiry", CalendarClock, "/batches"], ["Movements", ClipboardList, "/movements"], ["Shelf Map", Map, "/shelf-map"], ["Mobile Scanner", ScanLine, "/scanner"]] },
     { title: "Procurement", items: [["Purchases", ShoppingCart, "/purchases"], ["Suppliers", Truck, "/suppliers"]] },
     { title: "Pharmacy & Billing", items: [["Pharmacy Workspace", HeartPulse, "/pharmacy"], ["Pharmacy Ops", HeartPulse, "/pharmacy-ops"], ["Patients", Users, "/patients"], ["Invoices", FileText, "/invoices"]] },
     { title: "Logistics", items: [["Facility Center", MapPin, "/facility-center"], ["Logistics Network", Truck, "/logistics-network"], ["Logistics Ops", Zap, "/logistics-ops"]] },
     { title: "Intelligence", items: [["Financial Intel", Activity, "/financial-intel"], ["Predictive Risk", AlertTriangle, "/predictive-risk"], ["AI Operations", Sparkles, "/ai-operations"], ["Digital Twin", Map, "/digital-twin"], ["Scenario Planning", BarChart3, "/scenario-planning"], ["Vision Queue", Camera, "/vision-queue"]] },
-    { title: "Administration", items: [["Users & Roles", Users, "/users-roles"], ["Quality Control", ShieldCheck, "/quality-control"], ["System Health", Server, "/system-health"], ["Error Center", AlertTriangle, "/error-center"], ["Maintenance", Wrench, "/maintenance"], ["Settings", Settings, "/settings"]] }
+    { title: "Administration", items: [["Users & Roles", Users, "/users-roles"], ["Reports", FileText, "/reports"], ["Quality Control", ShieldCheck, "/quality-control"], ["System Health", Server, "/system-health"], ["Error Center", AlertTriangle, "/error-center"], ["Maintenance", Wrench, "/maintenance"], ["Settings", Settings, "/settings"]] }
   ];
 
   return <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
@@ -175,54 +178,11 @@ function AIInsights() {
 
 function Modal({title,close,children}) { return <div className="modal-backdrop" onMouseDown={close}><div className="modal" onMouseDown={e=>e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">MEDISTOCK</span><h2>{title}</h2></div><button className="icon-btn" onClick={close}><X size={19}/></button></div>{children}</div></div> }
 
-function UsersRoles() {
-  const team = [
-    { name: "Admin (You)", email: "admin@medistock.com", role: "Super Admin", access: "Full", status: "Active" },
-    { name: "Dr. Sarah Chen", email: "schen@medistock.com", role: "Chief Pharmacist", access: "Read/Write", status: "Active" },
-    { name: "Michael Vance", email: "mvance@medistock.com", role: "Inventory Clerk", access: "Restricted", status: "Offline" },
-    { name: "Elena Rodriguez", email: "erodriguez@medistock.com", role: "Auditor", access: "Read-Only", status: "Active" },
-  ];
-  return <div className="page">
-    <div className="page-heading"><div><span className="eyebrow">ACCESS CONTROL</span><h1>Users & Roles</h1><p>Manage staff accounts and permissions.</p></div><button className="primary"><Plus size={16}/> Invite user</button></div>
-    <div className="panel" style={{padding:0, overflow:"hidden"}}>
-      <div className="data-table">
-        <div className="table-head" style={{gridTemplateColumns: "1.5fr 1fr 1fr 1fr 0.5fr"}}><span>User</span><span>Role</span><span>Access Level</span><span>Status</span><span>Actions</span></div>
-        {team.map(u=>(
-          <div className="data-row" key={u.email} style={{gridTemplateColumns: "1.5fr 1fr 1fr 1fr 0.5fr"}}>
-            <div className="med-cell"><div className="avatar" style={{background:u.status==="Offline"?"#f1f5f9":""}}>{u.name.split(" ")[0][0]}{u.name.split(" ")[1][0]}</div><div><b>{u.name}</b><span>{u.email}</span></div></div>
-            <span><b>{u.role}</b></span>
-            <span>{u.access}</span>
-            <span style={{color: u.status==="Active"?"var(--green)":"var(--muted)"}}>● {u.status}</span>
-            <span><button className="link-btn">Edit</button></span>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>;
-}
 
 
 
-function Reports() {
-  const reports = [
-    { title: "Monthly Stock Valuation", desc: "Current value of all inventory assets", type: "Financial", icon: BarChart3 },
-    { title: "Expiry Risk Audit", desc: "Items expiring within 90 days", type: "Compliance", icon: Clock3 },
-    { title: "Supplier Lead Times", desc: "Average fulfillment times per vendor", type: "Procurement", icon: Truck },
-    { title: "Controlled Substances Log", desc: "Mandatory DEA/FDA tracking log", type: "Regulatory", icon: ShieldCheck },
-  ];
-  return <div className="page">
-    <div className="page-heading"><div><span className="eyebrow">REPORTING</span><h1>Reports</h1><p>Generate compliant and financial documents.</p></div><button className="primary"><Plus size={16}/> Custom Report</button></div>
-    <div className="report-grid" style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:15}}>
-      {reports.map(r => (
-        <div key={r.title} className="panel" style={{display:"flex", gap:15, alignItems:"center"}}>
-           <div className="feature-icon" style={{margin:0, width:45, height:45}}><r.icon size={20}/></div>
-           <div><b>{r.title}</b><p style={{margin:"2px 0 0", fontSize:11, color:"var(--muted)"}}>{r.desc}</p></div>
-           <button className="secondary" style={{marginLeft:"auto"}}><Download size={14}/> Generate</button>
-        </div>
-      ))}
-    </div>
-  </div>;
-}
+
+
 
 function SettingsView() {
   return <div className="page">
@@ -379,8 +339,8 @@ function App() {
       <Route path="/predictive-risk" element={<PredictiveRisk setToast={setToast}/>} />
       <Route path="/analytics" element={<Analytics setToast={setToast}/>} />
       <Route path="/ai-insights" element={<AIInsights setToast={setToast}/>} />
-      <Route path="/reports" element={typeof Reports !== 'undefined' ? <Reports setToast={setToast}/> : <Fallback />} />
-      <Route path="/users-roles" element={typeof UsersRoles !== 'undefined' ? <UsersRoles setToast={setToast}/> : <Fallback />} />
+      <Route path="/reports" element={<Reports setToast={setToast}/>} />
+      <Route path="/users-roles" element={<UsersRoles setToast={setToast}/>} />
       <Route path="/movements" element={<Movements setToast={setToast}/>} />
       <Route path="/settings" element={<Administration setToast={setToast}/>} />
       <Route path="/quality-control" element={<QualityControl setToast={setToast}/>} />
@@ -394,6 +354,7 @@ function App() {
     <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} onLogout={()=>{setLogged(false); localStorage.removeItem('medistock_token');}}/>
     <main className="main">
       {!isOnline && <div style={{background: '#f43f5e', color: 'white', padding: '8px 16px', fontSize: '13px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', fontWeight: 500}}><AlertTriangle size={15}/> You are currently offline. MediStock is running in read-only mode.</div>}
+      <DemoSandboxBar setToast={setToast} />
       <Header theme={theme} setTheme={setTheme} onMenu={()=>setCollapsed(!collapsed)} search={search} setSearch={setSearch} setCmdOpen={setCmdOpen} setToast={setToast}/>
       {content}
     </main>

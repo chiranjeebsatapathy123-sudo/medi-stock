@@ -43,16 +43,11 @@ export function Administration({ setToast }) {
 
                 <div className="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-6 min-h-[500px]">
                     {activeTab === 'Profile' && <ProfileTab />}
+                    {activeTab === 'Users & Roles' && <UsersTab setToast={setToast} />}
                     {activeTab === 'Billing' && <BillingTab />}
+                    {activeTab === 'Security' && <SecurityTab setToast={setToast} />}
                     {activeTab === 'Integrations' && <IntegrationsTab setToast={setToast} />}
-                    {/* Other tabs would be implemented here */}
-                    {activeTab !== 'Profile' && activeTab !== 'Billing' && activeTab !== 'Integrations' && (
-                        <div className="empty-state mt-20">
-                            <Settings size={32} className="text-slate-500 mb-3" />
-                            <h3>{activeTab} configuration</h3>
-                            <p>This module requires enterprise configuration mapping.</p>
-                        </div>
-                    )}
+                    {activeTab === 'Webhooks' && <WebhooksTab setToast={setToast} />}
                 </div>
             </div>
         </div>
@@ -209,6 +204,143 @@ function IntegrationsTab({ setToast }) {
                                 <button className="secondary px-3 py-1.5 text-xs" onClick={() => setToast(`Syncing with ${int.provider}...`)}>Sync Now</button>
                             )}
                             <button className="icon-btn" onClick={() => setToast(`Opening configuration for ${int.provider}`)}><Settings size={16} /></button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function UsersTab({ setToast }) {
+    const staff = [
+        { name: "Dr. Sarah Chen, MD", email: "admin@medistock.com", role: "SUPER_ADMIN", badge: "Super Admin", mfa: true, lastLogin: "Active now" },
+        { name: "Marcus Aurelius, PharmD", email: "pharmacist@medistock.com", role: "PHARMACIST", badge: "Lead Pharmacist", mfa: true, lastLogin: "5 mins ago" },
+        { name: "Elena Rostova, RN", email: "nurse@medistock.com", role: "CLINICAL_NURSE", badge: "Clinical Nurse", mfa: false, lastLogin: "2 hrs ago" },
+        { name: "James Vance", email: "logistics@medistock.com", role: "LOGISTICS_DISPATCH", badge: "Logistics Manager", mfa: true, lastLogin: "Yesterday" }
+    ];
+
+    return (
+        <div className="animate-fade-in">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+                <div>
+                    <h2 className="text-xl font-medium text-white">Clinical Staff & Access Control</h2>
+                    <p className="text-sm text-slate-400">Manage clinical roles, MFA enforcement, and hospital branch authorizations.</p>
+                </div>
+                <button className="primary text-sm px-3 py-1.5" onClick={() => setToast && setToast("Sending clinical invite...")}>Invite Member</button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+                {staff.map((u, i) => (
+                    <div key={i} className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 flex items-center justify-between hover:border-slate-600 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-brand">
+                                {u.name.charAt(0)}
+                            </div>
+                            <div>
+                                <h4 className="text-white font-medium flex items-center gap-2">
+                                    {u.name}
+                                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-brand/20 text-brand">
+                                        {u.badge}
+                                    </span>
+                                </h4>
+                                <div className="text-xs text-slate-400 flex items-center gap-3 mt-1">
+                                    <span>{u.email}</span>
+                                    <span>•</span>
+                                    <span style={{ color: u.mfa ? '#10b981' : '#f59e0b' }}>
+                                        {u.mfa ? "✓ MFA Enforced" : "⚠️ MFA Optional"}
+                                    </span>
+                                    <span>•</span>
+                                    <span>{u.lastLogin}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button className="secondary px-3 py-1 text-xs" onClick={() => setToast && setToast(`Access policy viewed for ${u.name}`)}>Edit Role</button>
+                            <button className="secondary px-3 py-1 text-xs" onClick={() => setToast && setToast(`Reset link sent to ${u.email}`)}>Reset Pass</button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function SecurityTab({ setToast }) {
+    return (
+        <div className="animate-fade-in max-w-2xl">
+            <h2 className="text-xl text-white font-medium mb-2">FDA 21 CFR Part 11 & DEA Security Protocol</h2>
+            <p className="text-sm text-slate-400 mb-6">Enforce electronic signature validation, session protection, and narcotic dual control.</p>
+
+            <div className="flex flex-col gap-4">
+                <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg flex items-center justify-between">
+                    <div>
+                        <b className="text-white text-sm block">Cryptographic SHA-256 Audit Trail</b>
+                        <span className="text-xs text-slate-400">All dispensing, receipts, and recalls chained cryptographically.</span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded">ACTIVE</span>
+                </div>
+
+                <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg flex items-center justify-between">
+                    <div>
+                        <b className="text-white text-sm block">Mandatory CDSS Override Justification</b>
+                        <span className="text-xs text-slate-400">Blocks contraindicated drug dispensing unless justification is signed.</span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded">ENFORCED</span>
+                </div>
+
+                <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg flex items-center justify-between">
+                    <div>
+                        <b className="text-white text-sm block">DEA Schedule II Dual-Authorization</b>
+                        <span className="text-xs text-slate-400">Requires co-signature for Morphine and Fentanyl dispensing.</span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded">ENFORCED</span>
+                </div>
+
+                <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg flex items-center justify-between">
+                    <div>
+                        <b className="text-white text-sm block">Session Idle Timeout</b>
+                        <span className="text-xs text-slate-400">Automatically logs out inactive terminals after 15 minutes.</span>
+                    </div>
+                    <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded">15 MIN</span>
+                </div>
+
+                <button className="primary px-4 py-2 mt-2 w-fit" onClick={() => setToast && setToast("Security policy synchronized across all hospital terminals.")}>
+                    Update Security Policy
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function WebhooksTab({ setToast }) {
+    const hooks = [
+        { event: "prescription.dispensed", endpoint: "https://ehr.metro-health.org/api/v2/dispense", active: true },
+        { event: "batch.quarantined", endpoint: "https://safety.metro-health.org/hooks/quarantine", active: true },
+        { event: "recall.executed", endpoint: "https://fda-gateway.healthmail.com/webhook", active: true },
+        { event: "coldchain.excursion", endpoint: "https://facility-iot.metro-health.org/alerts", active: true }
+    ];
+
+    return (
+        <div className="animate-fade-in">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+                <div>
+                    <h2 className="text-xl font-medium text-white">Outbound Webhooks</h2>
+                    <p className="text-sm text-slate-400">Real-time JSON event streams dispatched to hospital EHR and regulatory endpoints.</p>
+                </div>
+                <button className="primary text-sm px-3 py-1.5" onClick={() => setToast && setToast("Configuring new webhook...")}>Add Webhook</button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+                {hooks.map((h, i) => (
+                    <div key={i} className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 flex items-center justify-between">
+                        <div>
+                            <span className="text-xs font-bold text-brand uppercase font-mono">{h.event}</span>
+                            <div className="text-xs text-slate-400 font-mono mt-1">{h.endpoint}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">Active</span>
+                            <button className="secondary px-3 py-1 text-xs" onClick={() => setToast && setToast(`Test payload sent to ${h.event}`)}>Test Ping</button>
                         </div>
                     </div>
                 ))}

@@ -9,4 +9,5 @@ import java.util.UUID;
 @Repository
 public interface GRNRepository extends JpaRepository<GRN, UUID> {
     List<GRN> findByOrganizationId(UUID organizationId);
+    List<GRN> findByPurchaseOrderId(UUID purchaseOrderId);
 }

@@ -17,10 +17,14 @@ public class WarehouseController {
 
     private final WarehouseService warehouseService;
     private final com.medistock.backend.service.PutAwayEngine putAwayEngine;
+    private final com.medistock.backend.service.BarcodeService barcodeService;
 
-    public WarehouseController(WarehouseService warehouseService, com.medistock.backend.service.PutAwayEngine putAwayEngine) {
+    public WarehouseController(WarehouseService warehouseService,
+                               com.medistock.backend.service.PutAwayEngine putAwayEngine,
+                               com.medistock.backend.service.BarcodeService barcodeService) {
         this.warehouseService = warehouseService;
         this.putAwayEngine = putAwayEngine;
+        this.barcodeService = barcodeService;
     }
 
     @GetMapping
@@ -57,6 +61,15 @@ public class WarehouseController {
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @PostMapping("/lookup-barcode")
+    public ResponseEntity<?> lookupBarcode(@RequestBody Map<String, String> payload) {
+        String barcode = payload.get("barcode");
+        if (barcode == null || barcode.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(barcodeService.lookup(barcode));
     }
 
     @PostMapping("/{warehouseId}/put-away")

@@ -43,4 +43,29 @@ public class FacilityController {
         if (tenantId == null) return ResponseEntity.status(403).build();
         return ResponseEntity.ok(facilityService.triggerVisionSimulation(tenantId, payload.get("deviceId")));
     }
+
+    @GetMapping("/telemetry/latest")
+    public ResponseEntity<?> getLatestTelemetry() {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+        return ResponseEntity.ok(facilityService.getLatestTelemetry(tenantId));
+    }
+
+    @PostMapping("/telemetry/ingest")
+    public ResponseEntity<?> ingestTelemetry(@RequestBody com.medistock.backend.entity.facility.ColdChainReading reading) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+        return ResponseEntity.ok(facilityService.ingestReading(reading, tenantId));
+    }
+
+    @PostMapping("/telemetry/simulate")
+    public ResponseEntity<?> simulateTelemetry(@RequestBody(required = false) Map<String, Object> payload) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+
+        String deviceId = payload != null && payload.containsKey("deviceId") ? (String) payload.get("deviceId") : "SenseNode-Alpha";
+        Double temp = payload != null && payload.containsKey("temperature") ? Double.valueOf(payload.get("temperature").toString()) : 9.5;
+
+        return ResponseEntity.ok(facilityService.simulateExcursion(tenantId, deviceId, temp));
+    }
 }

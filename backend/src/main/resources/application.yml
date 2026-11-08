@@ -1,10 +1,57 @@
 spring:
   application:
     name: medistock-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+jwt:
+  secret: ${JWT_SECRET:very_secret_default_key_for_development_purposes_only_which_needs_to_be_long_enough}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours
+  refresh-expiration: ${REFRESH_TOKEN_EXPIRATION:604800000} # 7 days
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,http://192.168.29.64:5173}
+
+ml:
+  service:
+    url: ${ML_SERVICE_URL:http://localhost:8000}
+
+server:
+  port: 8080
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
   datasource:
-    url: jdbc:postgresql://ep-floral-hall-b4fh8o4f-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-    username: neondb_owner
-    password: npg_wY8TqbNr3VaI
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:file:./data/medistock_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
+    driver-class-name: org.h2.Driver
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod,postgres
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/medistock}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: none
@@ -15,19 +62,3 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-
-jwt:
-  secret: ${JWT_SECRET:very_secret_default_key_for_development_purposes_only_which_needs_to_be_long_enough}
-  expiration: ${JWT_EXPIRATION:86400000} # 24 hours
-  refresh-expiration: ${REFRESH_TOKEN_EXPIRATION:604800000} # 7 days
-
-cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174}
-
-ml:
-  service:
-    url: ${ML_SERVICE_URL:http://localhost:8000}
-
-server:
-  port: 8080
-

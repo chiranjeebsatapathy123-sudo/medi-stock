@@ -39,6 +39,11 @@ public class Batch {
     private String status;
     private boolean quarantine;
     private boolean recall;
+    private String quarantineReason;
+    private String recallReason;
+    private String recallClass;
+    private String gtin;
+    private String serialNumber;
     
     private ZonedDateTime createdAt;
     private ZonedDateTime updatedAt;

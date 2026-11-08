@@ -8,14 +8,18 @@ import random
 
 app = FastAPI(title="MediStock ML Service", version="1.0.0")
 
-# Load Demand Model (Assume it was copied here or read from absolute path)
-MODEL_PATH = r"C:\Users\chira\Downloads\medistock-pro\backend\src\main\resources\ai\demand_model.pkl"
+# Load Demand Model (Dynamically resolved from env or repository relative path)
+DEFAULT_MODEL_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "backend", "src", "main", "resources", "ai", "demand_model.pkl"
+)
+MODEL_PATH = os.environ.get("DEMAND_MODEL_PATH", DEFAULT_MODEL_PATH)
 try:
     with open(MODEL_PATH, "rb") as f:
         demand_model = pickle.load(f)
 except Exception as e:
     demand_model = None
-    print(f"Failed to load model: {e}")
+    print(f"Failed to load model from {MODEL_PATH}: {e}")
 
 # Schemas
 class DemandRequest(BaseModel):

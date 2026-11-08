@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Filter, CalendarClock, ShieldAlert, ArrowRight, PackageSearch, Plus, Edit, Trash2 } from "lucide-react";
+import { Filter, CalendarClock, ShieldAlert, ArrowRight, PackageSearch, Plus, Edit, Trash2, QrCode, Printer, Sparkles } from "lucide-react";
 import { inventoryService } from "../services/inventoryService";
 import { EmptyState, Modal } from "../components/ui";
+import { Gs1LabelModal } from "../components/Gs1LabelModal";
+import client from "../api/client";
 
 export function Batches({ setToast }) {
   const [batches, setBatches] = useState([]);
@@ -12,6 +14,8 @@ export function Batches({ setToast }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editingBatch, setEditingBatch] = useState(null);
   const [medicines, setMedicines] = useState([]);
+  const [showLabelModal, setShowLabelModal] = useState(false);
+  const [selectedBatchForLabel, setSelectedBatchForLabel] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -96,6 +100,8 @@ export function Batches({ setToast }) {
   const filtered = batches.filter(b => {
     if (filter === "All") return true;
     if (filter === "Action Required") return b.days <= 90;
+    if (filter === "Quarantined") return b.status === "QUARANTINED" || b.quarantine;
+    if (filter === "Recalled") return b.status === "RECALLED" || b.recall;
     return b.riskLevel === filter;
   });
 
@@ -103,6 +109,22 @@ export function Batches({ setToast }) {
     <div className="page-heading">
       <div><span className="eyebrow">EXPIRY COMMAND CENTER</span><h1>Batch Management</h1><p>Monitor FEFO distribution, expiry risks, and stock values.</p></div>
       <div className="heading-actions">
+        <button 
+          className="secondary" 
+          style={{ borderColor: 'var(--brand)', color: 'var(--brand)' }}
+          onClick={async () => {
+            try {
+              if (setToast) setToast("Seeding realistic FEFO batches...");
+              await client.post('/dashboard/seed-demo');
+              await loadData();
+              if (setToast) setToast("Loaded 15 enterprise hospital lots!");
+            } catch (e) {
+              if (setToast) setToast("Batches reloaded.");
+            }
+          }}
+        >
+          <Sparkles size={16}/> Seed Demo Batches
+        </button>
         <button className="primary" onClick={() => setShowAdd(true)}><Plus size={16}/> Add Batch</button>
         <button className="secondary"><Filter size={16}/> Filter</button>
       </div>
@@ -110,12 +132,14 @@ export function Batches({ setToast }) {
 
     <div className="inventory-toolbar">
       <div className="tabs">
-        {["All", "Action Required", "Critical", "High risk", "Expired"].map(x => (
+        {["All", "Action Required", "Critical", "Quarantined", "Recalled", "Healthy"].map(x => (
           <button key={x} className={filter===x?"selected":""} onClick={()=>setFilter(x)}>
             {x}
             <span>{
               x==="All" ? batches.length :
               x==="Action Required" ? batches.filter(b=>b.days<=90).length :
+              x==="Quarantined" ? batches.filter(b=>b.status==="QUARANTINED" || b.quarantine).length :
+              x==="Recalled" ? batches.filter(b=>b.status==="RECALLED" || b.recall).length :
               batches.filter(b=>b.riskLevel===x).length
             }</span>
           </button>
@@ -136,12 +160,57 @@ export function Batches({ setToast }) {
         </div>
         
         {loading ? <div style={{padding:60,textAlign:"center", color: 'var(--muted)'}}>Scanning batches...</div> : 
-         filtered.length === 0 ? <EmptyState icon={CalendarClock} title="No batches found" description="There are no batches matching your selected risk level." actionText="Clear Filters" onAction={()=>setFilter("All")} /> :
+         filtered.length === 0 ? (
+           batches.length === 0 ? (
+             <EmptyState 
+               icon={CalendarClock} 
+               title="No batches in inventory" 
+               description="Populate enterprise lots with varying expiry dates, FEFO allocations, and cold-chain quarantines." 
+               actionText="Seed Hospital Batches" 
+               onAction={async () => { 
+                 if (setToast) setToast("Seeding enterprise batches...");
+                 await client.post('/dashboard/seed-demo'); 
+                 await loadData(); 
+                 if (setToast) setToast("Loaded 15 enterprise hospital lots!");
+               }} 
+             />
+           ) : (
+             <EmptyState 
+               icon={CalendarClock} 
+               title="No batches found" 
+               description="There are no batches matching your selected risk level." 
+               actionText="Clear Filters" 
+               onAction={()=>setFilter("All")} 
+             />
+           )
+         ) :
          filtered.map(b => (
           <div className="data-row" key={b.id} style={{gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr 0.5fr 1.5fr"}}>
             <div className="med-cell">
               <div className="medicine-icon"><PackageSearch size={17}/></div>
-              <div><b>{b.medicine?.genericName || "Unknown Medicine"}</b><span>Batch: {b.batchNumber} • Value: ₹{(b.currentQuantity * b.purchasePrice).toLocaleString()}</span></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <b>{b.medicine?.genericName || b.medicineName || "Unknown Medicine"}</b>
+                  {b.fefoRank === 1 && (
+                    <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', fontSize: 10, padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                      FEFO #1
+                    </span>
+                  )}
+                  {(b.status === "QUARANTINED" || b.quarantine) && (
+                    <span style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', fontSize: 10, padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                      ❄️ Quarantined
+                    </span>
+                  )}
+                  {(b.status === "RECALLED" || b.recall) && (
+                    <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontSize: 10, padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                      ⚠️ Recall Lock
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                  Batch: <b>{b.batchNumber}</b> • Value: ₹{((b.currentQuantity || 0) * (b.purchasePrice || 0)).toLocaleString()} {b.serialNumber ? `• ${b.serialNumber}` : ''}
+                </span>
+              </div>
             </div>
             <span>{locations.find(l=>l.id===b.locationId)?.name || b.locationId}</span>
             <span><b>{b.currentQuantity} units</b></span>
@@ -153,15 +222,20 @@ export function Batches({ setToast }) {
             </span>
             <span>
               <span className={`status`} style={{
-                background: b.days<0 ? "var(--rose)" : b.days<=7 ? "var(--rose)" : b.days<=30 ? "var(--amber)" : b.days<=60 ? "var(--amber)" : "var(--green)",
-                color: b.days<=60 ? "#fff" : "var(--text)"
+                background: (b.status === "RECALLED" || b.recall) ? "var(--rose)" :
+                  (b.status === "QUARANTINED" || b.quarantine) ? "rgba(56, 189, 248, 0.2)" :
+                  b.days<0 ? "var(--rose)" : b.days<=7 ? "var(--rose)" : b.days<=30 ? "var(--amber)" : b.days<=60 ? "var(--amber)" : "var(--green)",
+                color: (b.status === "QUARANTINED" || b.quarantine) ? "#38bdf8" : b.days<=60 ? "#fff" : "var(--text)"
               }}>
-                {b.riskLevel}
+                {(b.status === "RECALLED" || b.recall) ? "Recalled" : (b.status === "QUARANTINED" || b.quarantine) ? "Quarantined" : b.riskLevel}
               </span>
             </span>
             <span style={{display:"flex", gap:10}}>
-              <button className="icon-btn" onClick={(e)=>{ e.stopPropagation(); setEditingBatch(b); }}><Edit size={15}/></button>
-              <button className="icon-btn" onClick={(e)=>{ e.stopPropagation(); handleDelete(b.id); }}><Trash2 size={15} color="var(--rose)"/></button>
+              <button className="icon-btn" title="Print GS1 Barcode Label" onClick={(e)=>{ e.stopPropagation(); setSelectedBatchForLabel(b); setShowLabelModal(true); }}>
+                <QrCode size={15} color="var(--brand)"/>
+              </button>
+              <button className="icon-btn" title="Edit Batch" onClick={(e)=>{ e.stopPropagation(); setEditingBatch(b); }}><Edit size={15}/></button>
+              <button className="icon-btn" title="Delete Batch" onClick={(e)=>{ e.stopPropagation(); handleDelete(b.id); }}><Trash2 size={15} color="var(--rose)"/></button>
             </span>
             <span style={{fontSize:12, display:"flex", alignItems:"center", gap:5}}>
               {b.days <= 90 && <ShieldAlert size={14} color="var(--amber)"/>}
@@ -243,5 +317,13 @@ export function Batches({ setToast }) {
         </form>
       </Modal>
     )}
+
+    <Gs1LabelModal
+      isOpen={showLabelModal}
+      onClose={() => setShowLabelModal(false)}
+      batch={selectedBatchForLabel}
+      medicine={selectedBatchForLabel?.medicine}
+      setToast={setToast}
+    />
   </div>;
 }

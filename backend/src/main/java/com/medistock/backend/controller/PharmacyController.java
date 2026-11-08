@@ -49,12 +49,20 @@ public class PharmacyController {
         return ResponseEntity.ok(pharmacyService.createOrder(order, tenantId, userDetails.getId()));
     }
 
+    @GetMapping("/orders/{id}/cdss-review")
+    @PreAuthorize("hasAuthority('PHARMACY_VIEW') or hasAuthority('PHARMACIST') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<com.medistock.backend.dto.cdss.CdssEvaluationResult> reviewOrderCdss(@PathVariable UUID id) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+        return ResponseEntity.ok(pharmacyService.evaluateOrderCdss(id, tenantId));
+    }
+
     @PostMapping("/orders/{id}/review")
     @PreAuthorize("hasAuthority('PHARMACY_REVIEW') or hasAuthority('PHARMACIST') or hasRole('ROLE_ADMIN')")
     public ResponseEntity<MedicationOrder> reviewOrder(@PathVariable UUID id, @RequestBody Map<String, String> body, @AuthenticationPrincipal CustomUserDetails userDetails) {
         UUID tenantId = TenantContext.getCurrentTenant();
         if (tenantId == null) return ResponseEntity.status(403).build();
-        return ResponseEntity.ok(pharmacyService.reviewOrder(id, tenantId, userDetails.getId(), body.get("action")));
+        return ResponseEntity.ok(pharmacyService.reviewOrder(id, tenantId, userDetails.getId(), body.get("action"), body.get("overrideReason")));
     }
 
     @PostMapping("/orders/{id}/dispense")
@@ -79,5 +87,19 @@ public class PharmacyController {
         UUID tenantId = TenantContext.getCurrentTenant();
         if (tenantId == null) return ResponseEntity.status(403).build();
         return ResponseEntity.ok(pharmacyService.reverseDispense(id, tenantId, userDetails.getId(), body.get("reason")));
+    }
+
+    @GetMapping("/controlled-substances")
+    public ResponseEntity<List<Map<String, Object>>> getControlledSubstances() {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+        return ResponseEntity.ok(pharmacyService.getControlledSubstances(tenantId));
+    }
+
+    @GetMapping("/controlled-substances/ledger")
+    public ResponseEntity<?> getControlledSubstancesLedger() {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) return ResponseEntity.status(403).build();
+        return ResponseEntity.ok(pharmacyService.getControlledSubstancesLedger(tenantId));
     }
 }

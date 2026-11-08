@@ -89,7 +89,7 @@ function ShipmentCard({ ship, action, onClick }) {
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <b style={{ color: 'var(--text)', fontSize: '14px' }}>{ship.id}</b>
+          <b style={{ color: 'var(--text)', fontSize: '14px' }}>{ship.shipmentNumber || ship.id}</b>
           <span style={{ fontSize: '10px', background: 'var(--bg)', border: '1px solid var(--line)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, color: 'var(--brand)' }}>{ship.priority}</span>
        </div>
        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', color: 'var(--text)' }}>

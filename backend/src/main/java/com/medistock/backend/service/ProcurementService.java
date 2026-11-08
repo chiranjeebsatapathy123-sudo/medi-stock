@@ -17,13 +17,23 @@ public class ProcurementService {
     private final BatchRepository batchRepository;
     private final InventoryTransactionRepository transactionRepository;
     private final MedicineRepository medicineRepository;
+    private final Gs1BarcodeService gs1BarcodeService;
+    private final AuditService auditService;
 
-    public ProcurementService(PurchaseOrderRepository poRepository, GRNRepository grnRepository, BatchRepository batchRepository, InventoryTransactionRepository transactionRepository, MedicineRepository medicineRepository) {
+    public ProcurementService(PurchaseOrderRepository poRepository,
+                              GRNRepository grnRepository,
+                              BatchRepository batchRepository,
+                              InventoryTransactionRepository transactionRepository,
+                              MedicineRepository medicineRepository,
+                              Gs1BarcodeService gs1BarcodeService,
+                              AuditService auditService) {
         this.poRepository = poRepository;
         this.grnRepository = grnRepository;
         this.batchRepository = batchRepository;
         this.transactionRepository = transactionRepository;
         this.medicineRepository = medicineRepository;
+        this.gs1BarcodeService = gs1BarcodeService;
+        this.auditService = auditService;
     }
 
     public List<PurchaseOrder> getPurchaseOrders(UUID orgId) {
@@ -87,17 +97,44 @@ public class ProcurementService {
 
             Medicine medicine = medicineRepository.findById(poItem.getMedicine().getId()).orElseThrow();
 
-            // Create Batch
+            // Parse GS1 2D DataMatrix if barcode was scanned during goods receipt
+            Gs1BarcodeService.Gs1ParseResult gs1 = null;
+            if (reqItem.getNotes() != null && (reqItem.getNotes().contains("(") || reqItem.getNotes().startsWith("01"))) {
+                gs1 = gs1BarcodeService.parse(reqItem.getNotes());
+            }
+
+            String lotNumber = (gs1 != null && gs1.getLotNumber() != null)
+                    ? gs1.getLotNumber()
+                    : "LOT-" + (System.currentTimeMillis() % 100000);
+            LocalDate expiry = (gs1 != null && gs1.getExpiryDate() != null)
+                    ? gs1.getExpiryDate()
+                    : LocalDate.now().plusYears(1);
+
+            // Create Batch with GS1 traceability
             Batch batch = new Batch();
             batch.setMedicine(medicine);
-            batch.setBatchNumber("BATCH-" + System.currentTimeMillis()); // Normally scanned
+            batch.setBatchNumber(lotNumber);
+            if (gs1 != null) {
+                batch.setGtin(gs1.getGtin());
+                batch.setSerialNumber(gs1.getSerialNumber());
+            }
             batch.setReceivedQuantity(reqItem.getReceivedQuantity());
             batch.setCurrentQuantity(reqItem.getReceivedQuantity());
             batch.setPurchasePrice(poItem.getUnitPrice());
-            batch.setSupplierId(po.getSupplier().getId());
-            batch.setExpiryDate(LocalDate.now().plusYears(1)); // For demo if not supplied
+            batch.setSupplierId(po.getSupplier() != null ? po.getSupplier().getId() : null);
+            batch.setExpiryDate(expiry);
             batch.setStatus("ACTIVE");
-            batchRepository.save(batch);
+            batch = batchRepository.save(batch);
+
+            // FDA 21 CFR Part 11 Audit Trail Logging
+            try {
+                auditService.recordAudit(
+                        orgId, userId, "Procurement Officer", "PURCHASING_AGENT",
+                        "RECEIVE_GOODS_GRN", "BATCH", batch.getId(),
+                        null, "lot=" + lotNumber + ",qty=" + reqItem.getReceivedQuantity() + ",expiry=" + expiry,
+                        "Inward receipt on PO " + po.getPoNumber() + " with GRN " + grn.getGrnNumber()
+                );
+            } catch (Exception ignored) {}
 
             // Record Inventory Transaction
             InventoryTransaction tx = new InventoryTransaction();
